@@ -1,0 +1,26 @@
+# Java
+target/
+*.class
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Vue / Node
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+
+# env
+.env
