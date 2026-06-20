@@ -19,7 +19,9 @@
             </template>
             <el-menu-item-group>
               <el-menu-item index="/about">管理员信息</el-menu-item>
-              <el-menu-item index="/user">用户信息</el-menu-item>
+<!--              <el-menu-item index="/user">用户信息</el-menu-item>-->
+              <el-menu-item index="/category">分类管理</el-menu-item>
+              <el-menu-item index="/article">文章管理</el-menu-item>
             </el-menu-item-group>
           </el-submenu>
           <el-submenu index="3">
