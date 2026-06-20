@@ -1,77 +1,206 @@
 <template>
-  <div>
-  <div style="margin-bottom: 10px">
-    <el-input v-model="input" placeholder="请输入内容"
-              style="width: 200px;margin-right: 10px"></el-input>
-    <el-button type="warning">查询</el-button>
-    <el-button type="success">新增</el-button>
-  </div>
+  <section class="home-page">
+    <div class="home-content">
+      <header class="home-header">
+        <h1>文章列表</h1>
+      </header>
 
-  <el-table :data="tableData" stripe style="width:
-  100%;margin-bottom: 10px">
-    <el-table-column prop="date" label="日期"
-                     width="180"></el-table-column>
-    <el-table-column prop="name" label="姓名"
-                     width="180"></el-table-column>
-    <el-table-column prop="address" label="地址"></el-table-column>
-    <el-table-column label="操作">
-      <el-button type="primary">编辑</el-button>
-      <el-button type="danger">删除</el-button>
-    </el-table-column>
-  </el-table>
+      <div class="article-feed">
+        <article
+            v-for="item in pagedArticles"
+            :key="item.id"
+            class="article-card"
+            @click="goDetail(item.id)"
+        >
+          <div class="article-main">
+            <h2>{{ item.title }}</h2>
+            <p class="summary">{{ item.summary || getContentPreview(item.content) }}</p>
+            <div class="meta">
+              <span>{{ formatTime(item.createTime) }}</span>
+              <span>阅读 {{ item.viewCount || 0 }}</span>
+            </div>
+          </div>
+        </article>
 
-  <div>
-    <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="currentPage"
-        :page-sizes="[100, 200, 300, 400]"
-        :page-size="100"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="400">
-    </el-pagination>
-  </div>
-  </div>
+        <el-empty
+            v-if="articleList.length === 0"
+            description="暂无文章"
+        />
+      </div>
+
+      <div v-if="articleList.length > pageSize" class="pagination-wrap">
+        <el-pagination
+            background
+            layout="prev, pager, next"
+            :current-page.sync="pageNum"
+            :page-size="pageSize"
+            :total="articleList.length"
+        />
+      </div>
+    </div>
+  </section>
 </template>
 
 <script>
+import request from '@/utils/request'
+
 export default {
   name: 'HomeView',
   data() {
     return {
-      input: '',
-      currentPage: 1,
-      tableData: [
-        {
-          date: '2016-05-02',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        },
-        {
-          date: '2016-05-04',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1517 弄'
-        },
-        {
-          date: '2016-05-01',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1519 弄'
-        },
-        {
-          date: '2016-05-03',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1516 弄'
-        }
-      ]
+      articleList: [],
+      pageNum: 1,
+      pageSize: 6
     }
   },
-  methods: {
-    handleSizeChange(val) {
-      console.log('每页条数变为', val)
+  computed: {
+    sortedArticles() {
+      return [...this.articleList].sort((a, b) => {
+        return this.getTimeValue(b.createTime) - this.getTimeValue(a.createTime)
+      })
     },
-    handleCurrentChange(val) {
-      console.log('当前页码变为', val)
+    pagedArticles() {
+      const start = (this.pageNum - 1) * this.pageSize
+      return this.sortedArticles.slice(start, start + this.pageSize)
+    }
+  },
+  created() {
+    this.load()
+  },
+  methods: {
+    load() {
+      request.get('/article/selectAll').then(res => {
+        if (res.code === '200') {
+          this.articleList = (res.data || []).filter(item => {
+            return item.status !== 'draft'
+          })
+        } else {
+          this.$message.error(res.msg)
+        }
+      })
+    },
+    goDetail(id) {
+      this.$router.push('/post/' + id)
+    },
+    getContentPreview(content) {
+      if (!content) {
+        return '暂无摘要'
+      }
+      return content.replace(/\s+/g, ' ').slice(0, 90)
+    },
+    getStatusText(status) {
+      if (status === 'published') {
+        return '已发布'
+      }
+      if (status === 'draft') {
+        return '草稿'
+      }
+      return '未知状态'
+    },
+    formatTime(value) {
+      if (!value) {
+        return '未知日期'
+      }
+
+      if (Array.isArray(value)) {
+        const year = value[0]
+        const month = this.padZero(value[1])
+        const day = this.padZero(value[2])
+        return `${year}-${month}-${day}`
+      }
+
+      return String(value).replace('T', ' ').slice(0, 10)
+    },
+    getTimeValue(value) {
+      if (!value) {
+        return 0
+      }
+
+      if (Array.isArray(value)) {
+        return new Date(value[0], value[1] - 1, value[2] || 1).getTime()
+      }
+
+      return new Date(value).getTime() || 0
+    },
+    padZero(value) {
+      return String(value).padStart(2, '0')
     }
   }
 }
 </script>
+
+<style scoped>
+.home-page {
+  min-height: calc(100vh - 120px);
+  padding: 28px 20px 56px;
+  color: #1f1e33;
+}
+
+.home-content {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.home-header {
+  margin-bottom: 26px;
+  font-family: "Noto Serif SC", "Songti SC", "SimSun", "Times New Roman", serif;
+}
+
+.home-header h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.4;
+}
+
+.home-header p {
+  margin: 8px 0 0;
+  font-size: 17px;
+  line-height: 1.8;
+  color: #606266;
+}
+
+.article-feed {
+  border-top: 1px solid #ebeef5;
+}
+
+.article-card {
+  padding: 22px 0;
+  border-bottom: 1px solid #ebeef5;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.article-card:hover {
+  color: #409eff;
+  transform: translateX(4px);
+}
+
+.article-main h2 {
+  margin: 0;
+  font-size: 23px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.summary {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #606266;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+</style>

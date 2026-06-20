@@ -3,7 +3,6 @@
     <div class="page-header">
       <div>
         <h2>文章管理</h2>
-        <p>维护博客文章内容，管理标题、分类、状态和正文。</p>
       </div>
       <el-button type="primary" @click="add">新增文章</el-button>
     </div>
@@ -61,7 +60,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="viewCount" label="浏览量" width="90" />
+<!--      <el-table-column prop="viewCount" label="浏览量" width="90" />-->
 
       <el-table-column label="创建时间" width="170">
         <template slot-scope="scope">

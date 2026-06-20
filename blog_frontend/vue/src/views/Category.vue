@@ -3,7 +3,6 @@
     <div class="page-header">
       <div>
         <h2>分类管理</h2>
-        <p>维护博客文章分类，用于前台筛选和文章归类。</p>
       </div>
       <el-button type="primary" @click="add">新增分类</el-button>
     </div>

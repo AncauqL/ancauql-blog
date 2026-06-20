@@ -21,6 +21,12 @@ public class ArticleController {
         return Result.success(articleService.selectAll());
     }
 
+    // 根据 id 查询文章详情
+    @GetMapping("/detail")
+    public Result detail(@RequestParam Integer id) {
+        return Result.success(articleService.selectById(id));
+    }
+
     // 模糊搜索
     @GetMapping("/selectSearch")
     public Result selectSearch(@RequestParam String articleTitle) {

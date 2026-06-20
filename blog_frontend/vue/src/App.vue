@@ -8,30 +8,49 @@
     <el-container>
       <el-aside style="background-color: #545c64;min-height: 100vh;width: 250px;overflow: hidden;">
         <el-menu :default-active="$route.path" router background-color="#545c64" text-color="#fff" active-text-color="#ffd04b">
+
           <el-menu-item index="/">
             <template slot="title">
               <i class="el-icon-location"></i><span>系统首页</span>
             </template>
           </el-menu-item>
-          <el-submenu index="2">
+
+<!--          <el-submenu index="2">-->
+<!--            <template slot="title">-->
+<!--              <i class="el-icon-location"></i><span>用户管理</span>-->
+<!--            </template>-->
+<!--            <el-menu-item-group>-->
+<!--              <el-menu-item index="/category">分类管理</el-menu-item>-->
+<!--              <el-menu-item index="/article">文章管理</el-menu-item>-->
+<!--            </el-menu-item-group>-->
+<!--          </el-submenu>-->
+
+<!--          <el-submenu index="3">-->
+<!--            <template slot="title">-->
+<!--              <i class="el-icon-location"></i><span>信息管理</span>-->
+<!--            </template>-->
+<!--            <el-menu-item-group>-->
+<!--              <el-menu-item index="aboutme">关于我</el-menu-item>-->
+<!--            </el-menu-item-group>-->
+<!--          </el-submenu>-->
+
+          <el-menu-item index="/category">
             <template slot="title">
-              <i class="el-icon-location"></i><span>用户管理</span>
+              <i class="el-icon-location"></i><span>分类管理</span>
             </template>
-            <el-menu-item-group>
-              <el-menu-item index="/about">管理员信息</el-menu-item>
-<!--              <el-menu-item index="/user">用户信息</el-menu-item>-->
-              <el-menu-item index="/category">分类管理</el-menu-item>
-              <el-menu-item index="/article">文章管理</el-menu-item>
-            </el-menu-item-group>
-          </el-submenu>
-          <el-submenu index="3">
+          </el-menu-item>
+
+          <el-menu-item index="/article">
             <template slot="title">
-              <i class="el-icon-location"></i><span>信息管理</span>
+              <i class="el-icon-location"></i><span>文章管理</span>
             </template>
-            <el-menu-item-group>
-              <el-menu-item index="3-1">公告信息</el-menu-item>
-            </el-menu-item-group>
-          </el-submenu>
+          </el-menu-item>
+
+          <el-menu-item index="/aboutme">
+            <template slot="title">
+              <i class="el-icon-location"></i><span>关于我</span>
+            </template>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       <el-main>

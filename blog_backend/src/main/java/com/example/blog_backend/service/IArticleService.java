@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface IArticleService {
     List<Article> selectAll();
+    Article selectById(Integer id);
     List<Article> selectSearch(String articleTitle);
     IPage<Article> selectPage(Integer pageNum, Integer pageSize,
                            String articleTitle);

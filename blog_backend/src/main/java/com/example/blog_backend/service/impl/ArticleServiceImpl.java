@@ -24,6 +24,11 @@ public class ArticleServiceImpl implements IArticleService {
     }
 
     @Override
+    public Article selectById(Integer id) {
+        return articleMapper.selectById(id);
+    }
+
+    @Override
     public List<Article> selectSearch(String articleTitle) {
         LambdaQueryWrapper<Article> wrapper = new
                 LambdaQueryWrapper<>();
