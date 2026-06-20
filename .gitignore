@@ -15,6 +15,11 @@ dist/
 .idea/
 .vscode/
 
+# AI / assistant local config
+.claude/
+.codex/
+.cursor/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -24,3 +29,6 @@ Thumbs.db
 
 # env
 .env
+
+#报告
+.报告/
