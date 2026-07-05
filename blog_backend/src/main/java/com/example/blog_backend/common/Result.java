@@ -4,6 +4,8 @@ public class Result {
 
     public static final String SUCCESS = "200";
     public static final String ERROR = "500";
+    public static final String UNAUTHORIZED = "401";
+    public static final String FORBIDDEN = "403";
 
     private String code;
     private String msg;
@@ -46,6 +48,14 @@ public class Result {
         result.setCode(code);
         result.setMsg(msg);
         return result;
+    }
+
+    public static Result unauthorized() {
+        return error(UNAUTHORIZED, "请先登录");
+    }
+
+    public static Result forbidden() {
+        return error(FORBIDDEN, "权限不足");
     }
 
     // getter / setter

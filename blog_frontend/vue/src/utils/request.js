@@ -11,7 +11,10 @@ request.interceptors.request.use(config => {
 // 设置默认Content-Type为JSON格式（适用于大多数POST/PUT请求）
     config.headers['Content-Type'] = 'application/json;charset=utf-8';
 
-//config.headers['token'] = user.token
+    const token = localStorage.getItem('blog_token')
+    if (token) {
+        config.headers['Authorization'] = 'Bearer ' + token
+    }
     return config
 }, error => {
     return Promise.reject(error)
@@ -25,6 +28,10 @@ request.interceptors.response.use(
 // 兼容服务端返回的字符串类型数据（如果后端返回JSON字符串，自动解析为对象）
         if (typeof res === 'string') {
             res = res ? JSON.parse(res) : res
+        }
+        if (res && res.code === '401') {
+            localStorage.removeItem('blog_token')
+            localStorage.removeItem('blog_user')
         }
         return res;
     }, error => {

@@ -24,6 +24,14 @@ public class ArticleServiceImpl implements IArticleService {
     }
 
     @Override
+    public List<Article> selectPublishedAll() {
+        LambdaQueryWrapper<Article> wrapper = new
+                LambdaQueryWrapper<>();
+        wrapper.eq(Article::getStatus, "published");
+        return articleMapper.selectList(wrapper);
+    }
+
+    @Override
     public Article selectById(Integer id) {
         return articleMapper.selectById(id);
     }
@@ -38,11 +46,33 @@ public class ArticleServiceImpl implements IArticleService {
     }
 
     @Override
+    public List<Article> selectPublishedSearch(String articleTitle) {
+        LambdaQueryWrapper<Article> wrapper = new
+                LambdaQueryWrapper<>();
+        wrapper.eq(Article::getStatus, "published");
+        wrapper.like(!"".equals(articleTitle) && articleTitle != null,
+                Article::getTitle, articleTitle);
+        return articleMapper.selectList(wrapper);
+    }
+
+    @Override
     public IPage<Article> selectPage(Integer pageNum, Integer
             pageSize, String articleTitle) {
         Page<Article> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Article> wrapper = new
                 LambdaQueryWrapper<>();
+        wrapper.like(!"".equals(articleTitle) && articleTitle != null,
+                Article::getTitle, articleTitle);
+        return articleMapper.selectPage(page, wrapper);
+    }
+
+    @Override
+    public IPage<Article> selectPublishedPage(Integer pageNum, Integer
+            pageSize, String articleTitle) {
+        Page<Article> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<Article> wrapper = new
+                LambdaQueryWrapper<>();
+        wrapper.eq(Article::getStatus, "published");
         wrapper.like(!"".equals(articleTitle) && articleTitle != null,
                 Article::getTitle, articleTitle);
         return articleMapper.selectPage(page, wrapper);

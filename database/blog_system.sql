@@ -95,10 +95,11 @@ CREATE TABLE `user` (
   `username` varchar(100) NOT NULL COMMENT '账号',
   `password` varchar(255) NOT NULL COMMENT '密码',
   `nickname` varchar(100) DEFAULT NULL COMMENT '昵称',
-  `role` varchar(50) DEFAULT 'admin' COMMENT '角色',
+  `role` varchar(50) DEFAULT 'ADMIN' COMMENT '角色',
   `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -108,7 +109,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (1,'admin','123456','管理员','admin','admin@example.com','2026-06-19 22:08:08');
+INSERT INTO `user` VALUES (1,'admin','123456','站长','SUPER_ADMIN','admin@example.com','2026-06-19 22:08:08');
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

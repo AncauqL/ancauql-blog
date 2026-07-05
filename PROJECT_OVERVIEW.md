@@ -93,9 +93,25 @@ AncauqL_blog/
   - 支持新增、编辑、删除文章。
   - 字段包括标题、摘要、正文、分类、封面地址、状态、作者 ID、阅读数。
 - 用户管理：`src/views/User.vue`
-  - 页面文件和后端 `/user` 接口仍保留。
-  - 当前没有挂到 `router/index.js` 和侧边栏菜单中。
-  - 更像早期练习功能，后续需要先整理数据库表结构再决定是否启用。
+  - 已重构为账号管理页。
+  - 仅 `SUPER_ADMIN` 可访问。
+  - 支持新增、编辑、删除管理员账号。
+  - 字段包括账号、昵称、邮箱、角色、密码。
+
+### 登录与权限
+
+- 登录页：`/login`
+  - 请求 `/auth/login`。
+  - 登录成功后前端保存 `blog_token` 和 `blog_user`。
+  - Axios 请求自动携带 `Authorization: Bearer token`。
+- 游客：
+  - 可访问首页、文章详情、关于我。
+  - 只能看到 `published` 文章。
+- 管理员：`ADMIN`
+  - 可访问文章管理和分类管理。
+- 超级管理员：`SUPER_ADMIN`
+  - 拥有管理员权限。
+  - 可访问账号管理。
 
 ## 后端接口概览
 
@@ -114,6 +130,12 @@ AncauqL_blog/
 ### 基础接口
 
 - `GET /hello`：返回 `hello world`，可用于快速确认后端是否启动。
+
+### 登录接口
+
+- `POST /auth/login`：登录，参数为 `username`、`password`。
+- `GET /auth/me`：获取当前登录用户。
+- `POST /auth/logout`：退出登录。
 
 ### 文章接口
 
@@ -135,12 +157,12 @@ AncauqL_blog/
 ### 用户接口
 
 - `GET /user/selectAll`：查询全部用户。
-- `GET /user/selectSearch?userName=关键词`：按姓名模糊搜索。
-- `GET /user/selectPage?pageNum=1&pageSize=10&userName=关键词`：分页查询。
+- `GET /user/selectSearch?username=关键词`：按账号模糊搜索。
+- `GET /user/selectPage?pageNum=1&pageSize=10&username=关键词`：分页查询。
 - `POST /user`：新增或编辑用户。
 - `DELETE /user/delete?id=用户ID`：删除用户。
 
-注意：当前默认数据库 `blog_system` 中的 `user` 表字段与 Java `User` 实体不匹配，见“数据表与注意事项”。
+注意：`/user/**` 当前只允许 `SUPER_ADMIN` 访问。
 
 ## 数据表与注意事项
 
@@ -169,15 +191,18 @@ AncauqL_blog/
 
 `user` 表：
 
-- `blog_system.sql` 中字段为 `username`、`password`、`nickname`、`role`、`email`、`create_time`。
-- Java 实体 `User.java` 中字段为 `userName`、`password`、`age`、`sex`、`phone`、`address`。
-- 因此在默认连接 `blog_system` 时，`/user` 相关接口存在字段不匹配风险。
+- `username`：账号，带唯一索引。
+- `password`：密码。新密码保存为 `SHA256:` 前缀格式；旧明文密码首次登录成功后会自动升级。
+- `nickname`：昵称。
+- `role`：角色，当前使用 `SUPER_ADMIN` / `ADMIN`。
+- `email`：邮箱。
+- `create_time`：创建时间。
 
 ### 早期库：`database/springboot.sql`
 
 - 库名为 `springboot`。
 - 只有 `user` 表。
-- 字段结构与当前 Java `User` 实体更接近。
+- 字段结构对应早期用户管理练习，不再对应当前账号系统。
 - 当前后端默认不连接该库。
 
 ## 启动方式
@@ -263,12 +288,11 @@ npm run build
 - 后端跨域当前使用 `@CrossOrigin(origins = "*")`，开发方便，但上线前建议改成明确域名。
 - 前端请求地址目前硬编码为 `http://localhost:9999`，后续建议改为 `.env` 配置。
 - 前端路由使用 `history` 模式，部署到 Nginx 或其他静态服务器时，需要配置 fallback 到 `index.html`。
-- 当前没有登录、鉴权和后台访问控制，管理页面直接暴露在前端路由中。
+- 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。
 - 文章正文虽然示例数据里有 Markdown 风格内容，但页面现在按纯文本展示。
 - `cover` 字段已经存在，但首页、详情页、文章管理表格当前都没有真正使用封面展示。
 - 首页是客户端分页；后端已经有 `/article/selectPage`，后续文章变多后可以切成服务端分页。
-- 文章详情页可以通过 ID 直接访问草稿文章；如果草稿需要保密，应在后端或详情页增加状态判断。
-- `User.vue`、`UserController`、`UserService`、`UserMapper.xml` 与主博客功能有历史遗留关系，后续可以选择删除、重构为真实账号系统，或迁移到新的用户表结构。
+- 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。
 
 ## 当前本机检查结果

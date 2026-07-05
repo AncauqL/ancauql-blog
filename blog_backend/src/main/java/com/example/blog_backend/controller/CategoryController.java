@@ -4,7 +4,6 @@ package com.example.blog_backend.controller;
 import com.example.blog_backend.common.Result;
 import com.example.blog_backend.entity.Category;
 import com.example.blog_backend.service.ICategoryService;
-import com.example.blog_backend.service.ICategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,86 +1,122 @@
 <template>
-  <div>
-    <!-- 搜索栏 -->
-    <div style="margin-bottom: 10px">
-      <el-input v-model="userName"
-                placeholder="请输入姓名" style="width: 200px;margin-right:
-  10px"></el-input>
-      <el-button type="warning"
-                 @click="load">查询</el-button>
-      <el-button type="info"
-                 @click="reset">重置</el-button>
-      <el-button type="primary" @click="add"
-                 style="float: right">新增</el-button>
+  <div class="user-page">
+    <div class="page-header">
+      <div>
+        <h2>账号管理</h2>
+      </div>
+      <el-button type="primary" @click="add">新增账号</el-button>
     </div>
 
-    <!-- 表格 -->
-    <el-table :data="tableData" style="width:
-  100%;margin-bottom: 10px">
-      <el-table-column prop="userName" label="姓名"
-                       width="180"></el-table-column>
-      <el-table-column prop="age"
-                       label="年龄"></el-table-column>
-      <el-table-column prop="sex"
-                       label="性别"></el-table-column>
-      <el-table-column prop="phone"
-                       label="电话"></el-table-column>
-      <el-table-column prop="address"
-                       label="地址"></el-table-column>
-      <el-table-column label="操作">
+    <div class="toolbar">
+      <el-input
+          v-model="username"
+          placeholder="请输入账号"
+          clearable
+          class="search-input"
+          @keyup.enter.native="load"
+          @clear="load"
+      />
+      <el-button type="primary" @click="load">查询</el-button>
+      <el-button @click="reset">重置</el-button>
+    </div>
+
+    <el-table
+        :data="tableData"
+        border
+        stripe
+        class="user-table"
+    >
+      <el-table-column prop="username" label="账号" min-width="140" />
+      <el-table-column prop="nickname" label="昵称" min-width="140" />
+      <el-table-column prop="email" label="邮箱" min-width="180" />
+
+      <el-table-column label="角色" width="130">
         <template slot-scope="scope">
-          <el-button type="primary"
-                     @click="edit(scope.row)">编辑</el-button>
-          <el-button type="danger"
-                     @click="del(scope.row.id)">删除</el-button>
+          <el-tag
+              :type="scope.row.role === 'SUPER_ADMIN' ? 'danger' : 'success'"
+              size="small"
+          >
+            {{ getRoleText(scope.row.role) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="创建时间" width="170">
+        <template slot-scope="scope">
+          <span>{{ formatTime(scope.row.createTime) }}</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="操作" width="160" fixed="right">
+        <template slot-scope="scope">
+          <el-button type="primary" size="mini" @click="edit(scope.row)">编辑</el-button>
+          <el-button
+              type="danger"
+              size="mini"
+              :disabled="isSelf(scope.row)"
+              @click="del(scope.row.id)"
+          >
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
     <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
+        class="pagination"
+        background
+        layout="total, sizes, prev, pager, next, jumper"
         :current-page="pageNum"
         :page-sizes="[5, 10, 20, 50]"
         :page-size="pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-    </el-pagination>
+        :total="total"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+    />
 
-    <!-- 新增/编辑弹窗 -->
-    <el-dialog title="请填写信息"
-               :visible.sync="dialogVisible" width="30%">
-      <el-form ref="form" :model="form"
-               label-width="80px">
-        <el-form-item label="姓名">
-          <el-input v-model="form.userName"
-                    placeholder="请输入姓名"></el-input>
+    <el-dialog
+        :title="form.id ? '编辑账号' : '新增账号'"
+        :visible.sync="dialogVisible"
+        width="460px"
+    >
+      <el-form :model="form" label-width="80px">
+        <el-form-item label="账号">
+          <el-input
+              v-model="form.username"
+              placeholder="请输入账号"
+              :disabled="Boolean(form.id)"
+          />
         </el-form-item>
-        <el-form-item label="年龄">
-          <el-input v-model="form.age"
-                    placeholder="请输入年龄"></el-input>
+
+        <el-form-item label="昵称">
+          <el-input v-model="form.nickname" placeholder="请输入昵称" />
         </el-form-item>
-        <el-form-item label="性别">
-          <el-radio v-model="form.sex"
-                    label="男"></el-radio>
-          <el-radio v-model="form.sex"
-                    label="女"></el-radio>
+
+        <el-form-item label="邮箱">
+          <el-input v-model="form.email" placeholder="请输入邮箱" />
         </el-form-item>
-        <el-form-item label="电话">
-          <el-input v-model="form.phone"
-                    placeholder="请输入电话"></el-input>
+
+        <el-form-item label="角色">
+          <el-select v-model="form.role" class="form-select">
+            <el-option label="超级管理员" value="SUPER_ADMIN" />
+            <el-option label="管理员" value="ADMIN" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="地址">
-          <el-input v-model="form.address"
-                    placeholder="请输入地址"></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary"
-                     @click="submit">提交</el-button>
-          <el-button @click="dialogVisible =
-  false">取消</el-button>
+
+        <el-form-item label="密码">
+          <el-input
+              v-model="form.password"
+              type="password"
+              show-password
+              :placeholder="form.id ? '留空则不修改密码' : '请输入密码'"
+          />
         </el-form-item>
       </el-form>
+
+      <div slot="footer">
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submit">保存</el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -96,46 +132,69 @@ export default {
       total: 0,
       pageNum: 1,
       pageSize: 5,
-      userName: '',
+      username: '',
       form: {},
-      dialogVisible: false
+      dialogVisible: false,
+      currentUser: null
     }
   },
   created() {
+    this.currentUser = this.getStoredUser()
     this.load()
   },
   methods: {
     load() {
-      request.get("/user/selectPage", {
+      request.get('/user/selectPage', {
         params: {
           pageNum: this.pageNum,
           pageSize: this.pageSize,
-          userName: this.userName,
+          username: this.username
         }
       }).then(res => {
-        if (res.code == '200') {
-          this.tableData = res.data.records
-          this.total = res.data.total
+        if (res.code === '200') {
+          this.tableData = res.data.records || []
+          this.total = res.data.total || 0
+        } else {
+          this.$message.error(res.msg)
         }
       })
     },
     reset() {
-      this.userName = ''
+      this.username = ''
       this.pageNum = 1
       this.load()
     },
     add() {
-      this.form = {}
+      this.form = {
+        username: '',
+        password: '',
+        nickname: '',
+        email: '',
+        role: 'ADMIN'
+      }
       this.dialogVisible = true
     },
     edit(data) {
-      this.form = { ...data }
+      this.form = {
+        ...data,
+        password: ''
+      }
       this.dialogVisible = true
     },
     submit() {
-      request.post("/user", this.form).then(res => {
-        if (res.code == '200') {
-          this.$message.success('提交成功')
+      if (!this.form.username) {
+        this.$message.warning('请输入账号')
+        return
+      }
+
+      if (!this.form.id && !this.form.password) {
+        this.$message.warning('请输入密码')
+        return
+      }
+
+      request.post('/user', this.form).then(res => {
+        if (res.code === '200') {
+          this.$message.success('保存成功')
           this.dialogVisible = false
           this.load()
         } else {
@@ -144,16 +203,19 @@ export default {
       })
     },
     del(id) {
-      request.delete("/user/delete?id=" + id).then(res =>
-      {
-        if (res.code == '200') {
-          this.$message.success('删除成功')
-          this.pageNum = 1
-          this.load()
-        } else {
-          this.$message.error(res.msg)
-        }
-      })
+      this.$confirm('确定删除这个账号吗？', '提示', {
+        type: 'warning'
+      }).then(() => {
+        request.delete('/user/delete?id=' + id).then(res => {
+          if (res.code === '200') {
+            this.$message.success('删除成功')
+            this.pageNum = 1
+            this.load()
+          } else {
+            this.$message.error(res.msg)
+          }
+        })
+      }).catch(() => {})
     },
     handleCurrentChange(pageNum) {
       this.pageNum = pageNum
@@ -161,8 +223,90 @@ export default {
     },
     handleSizeChange(pageSize) {
       this.pageSize = pageSize
+      this.pageNum = 1
       this.load()
+    },
+    getRoleText(role) {
+      if (role === 'SUPER_ADMIN') {
+        return '超级管理员'
+      }
+      if (role === 'ADMIN') {
+        return '管理员'
+      }
+      return role || '未知'
+    },
+    formatTime(value) {
+      if (!value) {
+        return '-'
+      }
+
+      if (Array.isArray(value)) {
+        const year = value[0]
+        const month = this.padZero(value[1])
+        const day = this.padZero(value[2])
+        const hour = this.padZero(value[3] || 0)
+        const minute = this.padZero(value[4] || 0)
+        return `${year}-${month}-${day} ${hour}:${minute}`
+      }
+
+      return String(value).replace('T', ' ').slice(0, 16)
+    },
+    padZero(value) {
+      return String(value).padStart(2, '0')
+    },
+    isSelf(user) {
+      return this.currentUser && this.currentUser.id === user.id
+    },
+    getStoredUser() {
+      try {
+        return JSON.parse(localStorage.getItem('blog_user') || 'null')
+      } catch (e) {
+        return null
+      }
     }
   }
 }
 </script>
+
+<style scoped>
+.user-page {
+  padding: 4px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search-input {
+  width: 240px;
+}
+
+.user-table {
+  width: 100%;
+}
+
+.pagination {
+  margin-top: 14px;
+}
+
+.form-select {
+  width: 100%;
+}
+</style>

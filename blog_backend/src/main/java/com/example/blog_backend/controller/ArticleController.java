@@ -1,6 +1,7 @@
 
 package com.example.blog_backend.controller;
 
+import com.example.blog_backend.common.AuthContext;
 import com.example.blog_backend.common.Result;
 import com.example.blog_backend.entity.Article;
 import com.example.blog_backend.service.IArticleService;
@@ -18,18 +19,32 @@ public class ArticleController {
     // 查询全部
     @GetMapping("/selectAll")
     public Result selectAll() {
-        return Result.success(articleService.selectAll());
+        if (AuthContext.isManager()) {
+            return Result.success(articleService.selectAll());
+        }
+        return Result.success(articleService.selectPublishedAll());
     }
 
     // 根据 id 查询文章详情
     @GetMapping("/detail")
     public Result detail(@RequestParam Integer id) {
-        return Result.success(articleService.selectById(id));
+        Article article = articleService.selectById(id);
+        if (article == null) {
+            return Result.error("文章不存在");
+        }
+        if ("draft".equals(article.getStatus()) &&
+                !AuthContext.isManager()) {
+            return Result.forbidden();
+        }
+        return Result.success(article);
     }
 
     // 模糊搜索
     @GetMapping("/selectSearch")
     public Result selectSearch(@RequestParam String articleTitle) {
+        if (!AuthContext.isManager()) {
+            return Result.success(articleService.selectPublishedSearch(articleTitle));
+        }
         return
                 Result.success(articleService.selectSearch(articleTitle));
     }
@@ -39,6 +54,10 @@ public class ArticleController {
     public Result selectByPage(@RequestParam Integer pageNum,
                                @RequestParam Integer pageSize,
                                @RequestParam String articleTitle) {
+        if (!AuthContext.isManager()) {
+            return Result.success(articleService.selectPublishedPage(pageNum,
+                    pageSize, articleTitle));
+        }
         return Result.success(articleService.selectPage(pageNum,
                 pageSize, articleTitle));
     }

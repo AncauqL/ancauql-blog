@@ -15,7 +15,7 @@ public interface UserMapper extends BaseMapper<User>{
     // 批量添加
     void batchInsert(List<User> list);
 
-    //自定义update
+    // 自定义 update，当前业务主要使用 MyBatis-Plus updateById
     void update(User user);
 
 

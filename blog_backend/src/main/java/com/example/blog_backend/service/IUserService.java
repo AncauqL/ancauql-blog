@@ -6,10 +6,13 @@ import java.util.List;
 
 public interface IUserService {
     List<User> selectAll();
-    List<User> selectSearch(String userName);
+    User selectById(Integer id);
+    User selectByUsername(String username);
+    List<User> selectSearch(String username);
     IPage<User> selectPage(Integer pageNum, Integer pageSize,
-                           String userName);
+                           String username);
     void insert(User user);
     void update(User user);
     void delete(Integer id);
+    User login(String username, String password);
 }
