@@ -18,8 +18,16 @@ public interface IArticleService {
 
     List<Article> selectSearch(String articleTitle);
     List<Article> selectPublishedSearch(String articleTitle);
+    /**
+     * 管理端分页：可按标题模糊、状态精确过滤。
+     * 按创建时间倒序；列表不返回 content 字段（正文过大，编辑时用 detail 单查）。
+     */
     IPage<Article> selectPage(Integer pageNum, Integer pageSize,
-                           String articleTitle);
+                           String articleTitle, String status);
+
+    /**
+     * 访客分页：只返回已发布文章，其余同 selectPage。
+     */
     IPage<Article> selectPublishedPage(Integer pageNum, Integer pageSize,
                            String articleTitle);
     void insert(Article article);

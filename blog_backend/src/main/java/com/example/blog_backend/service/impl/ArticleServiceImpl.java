@@ -106,12 +106,11 @@ public class ArticleServiceImpl implements IArticleService {
 
     @Override
     public IPage<Article> selectPage(Integer pageNum, Integer
-            pageSize, String articleTitle) {
+            pageSize, String articleTitle, String status) {
         Page<Article> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<Article> wrapper = new
-                LambdaQueryWrapper<>();
-        wrapper.like(!"".equals(articleTitle) && articleTitle != null,
-                Article::getTitle, articleTitle);
+        LambdaQueryWrapper<Article> wrapper = listWrapper(articleTitle);
+        wrapper.eq(status != null && !"".equals(status),
+                Article::getStatus, status);
         return articleMapper.selectPage(page, wrapper);
     }
 
@@ -119,12 +118,27 @@ public class ArticleServiceImpl implements IArticleService {
     public IPage<Article> selectPublishedPage(Integer pageNum, Integer
             pageSize, String articleTitle) {
         Page<Article> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<Article> wrapper = listWrapper(articleTitle);
+        wrapper.eq(Article::getStatus, "published");
+        return articleMapper.selectPage(page, wrapper);
+    }
+
+    /**
+     * 列表查询公共条件：
+     * - 排除 content 大字段（编辑 / 阅读时通过 detail 单独取正文）
+     * - 标题模糊匹配（可选）
+     * - 创建时间倒序，同时间按 id 倒序兜底
+     */
+    private LambdaQueryWrapper<Article> listWrapper(String articleTitle) {
         LambdaQueryWrapper<Article> wrapper = new
                 LambdaQueryWrapper<>();
-        wrapper.eq(Article::getStatus, "published");
+        wrapper.select(Article.class,
+                info -> !"content".equals(info.getColumn()));
         wrapper.like(!"".equals(articleTitle) && articleTitle != null,
                 Article::getTitle, articleTitle);
-        return articleMapper.selectPage(page, wrapper);
+        wrapper.orderByDesc(Article::getCreateTime);
+        wrapper.orderByDesc(Article::getId);
+        return wrapper;
     }
 
     @Override

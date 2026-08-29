@@ -82,6 +82,11 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 图片上传等文件操作全部需要管理员
+        if (path.startsWith("/file")) {
+            return true;
+        }
+
         if (path.startsWith("/article")) {
             return !"GET".equalsIgnoreCase(method);
         }

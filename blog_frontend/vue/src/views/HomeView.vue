@@ -7,14 +7,14 @@
 
       <div class="article-feed">
         <article
-            v-for="item in pagedArticles"
+            v-for="item in articleList"
             :key="item.id"
             class="article-card"
             @click="goDetail(item.id)"
         >
           <div class="article-main">
             <h2>{{ item.title }}</h2>
-            <p class="summary">{{ item.summary || getContentPreview(item.content) }}</p>
+            <p class="summary">{{ item.summary || '暂无摘要' }}</p>
             <div class="meta">
               <span>{{ formatTime(item.createTime) }}</span>
               <span>阅读 {{ item.viewCount || 0 }}</span>
@@ -23,18 +23,19 @@
         </article>
 
         <el-empty
-            v-if="articleList.length === 0"
+            v-if="loaded && articleList.length === 0"
             description="暂无文章"
         />
       </div>
 
-      <div v-if="articleList.length > pageSize" class="pagination-wrap">
+      <div v-if="total > pageSize" class="pagination-wrap">
         <el-pagination
             background
             layout="prev, pager, next"
-            :current-page.sync="pageNum"
+            :current-page="pageNum"
             :page-size="pageSize"
-            :total="articleList.length"
+            :total="total"
+            @current-change="onPageChange"
         />
       </div>
     </div>
@@ -43,26 +44,16 @@
 
 <script>
 import request from '@/utils/request'
-import { stripMarkdown } from '@/utils/markdown'
 
 export default {
   name: 'HomeView',
   data() {
     return {
       articleList: [],
+      loaded: false,
       pageNum: 1,
-      pageSize: 6
-    }
-  },
-  computed: {
-    sortedArticles() {
-      return [...this.articleList].sort((a, b) => {
-        return this.getTimeValue(b.createTime) - this.getTimeValue(a.createTime)
-      })
-    },
-    pagedArticles() {
-      const start = (this.pageNum - 1) * this.pageSize
-      return this.sortedArticles.slice(start, start + this.pageSize)
+      pageSize: 6,
+      total: 0
     }
   },
   created() {
@@ -70,34 +61,33 @@ export default {
   },
   methods: {
     load() {
-      request.get('/article/selectAll').then(res => {
+      // 服务端分页；status=published 保证管理员登录后首页看到的也是公开视角
+      request.get('/article/selectPage', {
+        params: {
+          pageNum: this.pageNum,
+          pageSize: this.pageSize,
+          status: 'published'
+        }
+      }).then(res => {
+        this.loaded = true
         if (res.code === '200') {
-          this.articleList = (res.data || []).filter(item => {
-            return item.status !== 'draft'
-          })
+          this.articleList = (res.data && res.data.records) || []
+          this.total = (res.data && res.data.total) || 0
         } else {
           this.$message.error(res.msg)
         }
+      }).catch(() => {
+        this.loaded = true
+        this.$message.error('文章列表加载失败，请确认后端已启动')
       })
+    },
+    onPageChange(page) {
+      this.pageNum = page
+      this.load()
+      window.scrollTo({ top: 0 })
     },
     goDetail(id) {
       this.$router.push('/post/' + id)
-    },
-    getContentPreview(content) {
-      const text = stripMarkdown(content)
-      if (!text) {
-        return '暂无摘要'
-      }
-      return text.slice(0, 90)
-    },
-    getStatusText(status) {
-      if (status === 'published') {
-        return '已发布'
-      }
-      if (status === 'draft') {
-        return '草稿'
-      }
-      return '未知状态'
     },
     formatTime(value) {
       if (!value) {
@@ -112,17 +102,6 @@ export default {
       }
 
       return String(value).replace('T', ' ').slice(0, 10)
-    },
-    getTimeValue(value) {
-      if (!value) {
-        return 0
-      }
-
-      if (Array.isArray(value)) {
-        return new Date(value[0], value[1] - 1, value[2] || 1).getTime()
-      }
-
-      return new Date(value).getTime() || 0
     },
     padZero(value) {
       return String(value).padStart(2, '0')

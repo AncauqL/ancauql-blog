@@ -1,15 +1,20 @@
 import axios from 'axios'
 
+// 后端服务地址：markdown 渲染、图片上传回显等都从这里取，改地址只改这一处
+export const API_BASE = 'http://localhost:9999'
+
 // 创建一个新的axios实例
 const request = axios.create({
-    baseURL: 'http://localhost:9999', // 后端接口基础地址
-    timeout: 5000
+    baseURL: API_BASE,
+    timeout: 15000
 })
 
 // request 拦截器，可以自请求发送前对请求做一些处理，比如统一加token，对请求参数统一加密
 request.interceptors.request.use(config => {
-// 设置默认Content-Type为JSON格式（适用于大多数POST/PUT请求）
-    config.headers['Content-Type'] = 'application/json;charset=utf-8';
+    // FormData（文件上传）必须让浏览器自动生成 multipart 边界，不能强制 JSON
+    if (!(config.data instanceof FormData)) {
+        config.headers['Content-Type'] = 'application/json;charset=utf-8'
+    }
 
     const token = localStorage.getItem('blog_token')
     if (token) {

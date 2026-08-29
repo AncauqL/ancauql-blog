@@ -95,11 +95,17 @@ AncauqL_blog/
   - 支持新增、编辑、删除分类。
   - 字段包括分类名称、分类描述、排序值。
 - 文章管理：`/article`
-  - 展示文章表格。
-  - 支持按标题搜索。
-  - 支持按状态在前端过滤：已发布 / 草稿。
-  - 支持新增、编辑、删除文章。
-  - 字段包括标题、摘要、正文、分类、封面地址、状态、作者 ID、阅读数。
+  - 服务端分页表格，支持按标题搜索、按状态（已发布 / 草稿）过滤。
+  - 展示标题、摘要、分类、状态、阅读数、创建时间。
+  - 新增 / 编辑跳转到全屏编辑器页，删除带确认。
+- 文章编辑器：`/article/edit/:id?`
+  - 左右分栏：左侧 Markdown 输入，右侧实时预览（与详情页同一套渲染管线）。
+  - 工具栏：插入图片、加粗、行内代码、代码块、链接、引用。
+  - 图片上传：按钮选择、粘贴、拖拽三种方式，自动上传后插入 Markdown。
+  - 封面上传与预览。
+  - 本地草稿：自动保存到 localStorage，意外关闭后可恢复；离开页面有未保存确认。
+  - 快捷键：Tab 缩进、Ctrl+S 保存。
+  - 状态切换（草稿 / 发布）+ 保存 / 保存并返回。
 - 用户管理：`src/views/User.vue`
   - 已重构为账号管理页。
   - 仅 `SUPER_ADMIN` 可访问。
@@ -150,10 +156,21 @@ AncauqL_blog/
 - `GET /article/selectAll`：查询全部文章。
 - `GET /article/detail?id=文章ID`：按 ID 查询文章详情；游客访问已发布文章时阅读数 +1。
 - `GET /article/neighbors?id=文章ID`：查询上一篇 / 下一篇（按发布时间排序，仅返回已发布文章的 id 和标题）。
-- `GET /article/selectSearch?articleTitle=关键词`：按标题模糊搜索。
-- `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词`：分页查询。
-- `POST /article`：新增或编辑文章；请求体带 `id` 时编辑，不带 `id` 时新增。
+- `GET /article/selectSearch?articleTitle=关键词`：按标题模糊搜索（旧接口，新代码建议用 selectPage）。
+- `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词&status=状态`：分页查询。
+  - 所有参数可选（pageNum 默认 1，pageSize 默认 10）。
+  - 按创建时间倒序、id 倒序排列；**返回结果不含 content 大字段**，正文用 detail 单查。
+  - status 过滤仅对管理员生效；游客恒定只看到已发布文章。
+- `POST /article`：新增或编辑文章；请求体带 `id` 时编辑，不带 `id` 时新增。**返回带 id 的完整文章对象**。
 - `DELETE /article/delete?id=文章ID`：删除文章。
+
+### 文件接口
+
+- `POST /file/upload`：图片上传（仅管理员），multipart 字段名 `file`。
+  - 只允许 jpg / jpeg / png / gif / webp（不含 svg，防 XSS），大小 ≤ 10MB。
+  - 落盘到 `blog.upload-dir`（默认 `./uploads`，相对后端工作目录），按月份分目录，文件名为 UUID。
+  - 返回相对路径字符串，如 `/uploads/202608/xxx.png`；前端渲染时自行拼接后端地址。
+- `GET /uploads/**`：上传图片的公开静态访问。
 
 ### 分类接口
 
@@ -308,8 +325,9 @@ npm run build
 - 前端路由使用 `history` 模式，部署到 Nginx 或其他静态服务器时，需要配置 fallback 到 `index.html`。
 - 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。
 - 文章正文按 Markdown 渲染，渲染结果经 DOMPurify 消毒；写作时可放心使用标准 Markdown 语法。
-- `cover` 字段已经存在，但首页、详情页、文章管理表格当前都没有真正使用封面展示。
-- 首页是客户端分页；后端已经有 `/article/selectPage`，后续文章变多后可以切成服务端分页。
+- 正文与封面中的站内图片存**相对路径** `/uploads/...`，前端渲染时拼接 `request.js` 导出的 `API_BASE`；部署换域名只改一处。
+- `cover` 字段编辑器里已支持上传设置，但首页 / 详情页的封面展示还没做（前台改版时处理）。
+- 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容。
 - 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。
 

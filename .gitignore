@@ -32,6 +32,10 @@ Thumbs.db
 .env
 dev-env.bat
 
+# uploaded images (local content, not source)
+/uploads/
+blog_backend/uploads/
+
 #报告
 报告/
 

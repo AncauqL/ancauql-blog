@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/core'
+import { API_BASE } from '@/utils/request'
 
 import bash from 'highlight.js/lib/languages/bash'
 import shell from 'highlight.js/lib/languages/shell'
@@ -20,6 +21,7 @@ import nginx from 'highlight.js/lib/languages/nginx'
 import plaintext from 'highlight.js/lib/languages/plaintext'
 
 import 'highlight.js/styles/github.css'
+import '@/assets/css/markdown.css'
 
 // 只注册博客会用到的语言，控制打包体积
 hljs.registerLanguage('bash', bash)
@@ -92,6 +94,18 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     tokens[idx].attrSet('rel', 'noopener noreferrer')
   }
   return defaultLinkOpen(tokens, idx, options, env, self)
+}
+
+// 站内上传的图片使用相对路径存储（/uploads/...），渲染时补全后端地址
+const defaultImage = md.renderer.rules.image
+
+md.renderer.rules.image = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+  const src = token.attrGet('src') || ''
+  if (src.startsWith('/uploads/')) {
+    token.attrSet('src', API_BASE + src)
+  }
+  return defaultImage(tokens, idx, options, env, self)
 }
 
 /**

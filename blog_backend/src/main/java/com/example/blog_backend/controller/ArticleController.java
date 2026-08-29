@@ -63,20 +63,22 @@ public class ArticleController {
                 Result.success(articleService.selectSearch(articleTitle));
     }
 
-    // 分页查询
+    // 分页查询（articleTitle / status 均可选；status 仅对管理员生效）
     @GetMapping("/selectPage")
-    public Result selectByPage(@RequestParam Integer pageNum,
-                               @RequestParam Integer pageSize,
-                               @RequestParam String articleTitle) {
+    public Result selectByPage(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false, defaultValue = "") String articleTitle,
+            @RequestParam(required = false, defaultValue = "") String status) {
         if (!AuthContext.isManager()) {
             return Result.success(articleService.selectPublishedPage(pageNum,
                     pageSize, articleTitle));
         }
         return Result.success(articleService.selectPage(pageNum,
-                pageSize, articleTitle));
+                pageSize, articleTitle, status));
     }
 
-    // 新增 / 编辑（id为null则新增，有id则更新）
+    // 新增 / 编辑（id为null则新增，有id则更新）；返回带 id 的文章对象
     @PostMapping
     public Result insert(@RequestBody Article article) {
         if (article.getId() == null) {
@@ -84,7 +86,7 @@ public class ArticleController {
         } else {
             articleService.update(article);
         }
-        return Result.success();
+        return Result.success(article);
     }
 
     // 删除

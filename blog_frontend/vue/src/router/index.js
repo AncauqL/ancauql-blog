@@ -29,6 +29,15 @@ const routes = [
     }
   },
   {
+    path: '/article/edit/:id?',
+    name: 'ArticleEditor',
+    component: () => import('../views/ArticleEditor.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['SUPER_ADMIN', 'ADMIN']
+    }
+  },
+  {
     path: '/post/:id',
     name: 'ArticleDetail',
     component: () => import('../views/ArticleDetail.vue')
