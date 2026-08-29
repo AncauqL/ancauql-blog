@@ -1,9 +1,11 @@
 package com.example.blog_backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import
         com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.blog_backend.dto.ArticleNeighbors;
 import com.example.blog_backend.entity.Article;
 import com.example.blog_backend.mapper.ArticleMapper;
 import com.example.blog_backend.service.IArticleService;
@@ -34,6 +36,53 @@ public class ArticleServiceImpl implements IArticleService {
     @Override
     public Article selectById(Integer id) {
         return articleMapper.selectById(id);
+    }
+
+    @Override
+    public void increaseViewCount(Integer id) {
+        UpdateWrapper<Article> wrapper = new UpdateWrapper<>();
+        wrapper.eq("id", id);
+        // 数据库端原子自增，兼容历史数据中 view_count 为 NULL 的情况
+        wrapper.setSql("view_count = IFNULL(view_count, 0) + 1");
+        articleMapper.update(null, wrapper);
+    }
+
+    @Override
+    public ArticleNeighbors selectNeighbors(Integer id) {
+        // 只取导航需要的最小字段，按发布时间 + id 升序排出全站阅读顺序
+        LambdaQueryWrapper<Article> wrapper = new
+                LambdaQueryWrapper<>();
+        wrapper.select(Article::getId, Article::getTitle,
+                Article::getCreateTime);
+        wrapper.eq(Article::getStatus, "published");
+        wrapper.orderByAsc(Article::getCreateTime);
+        wrapper.orderByAsc(Article::getId);
+        List<Article> articles = articleMapper.selectList(wrapper);
+
+        int index = -1;
+        for (int i = 0; i < articles.size(); i++) {
+            if (articles.get(i).getId().equals(id)) {
+                index = i;
+                break;
+            }
+        }
+
+        ArticleNeighbors neighbors = new ArticleNeighbors();
+        if (index < 0) {
+            // 当前文章不在已发布列表中（例如草稿预览），不提供导航
+            return neighbors;
+        }
+        if (index > 0) {
+            Article prev = articles.get(index - 1);
+            neighbors.setPrev(new ArticleNeighbors.ArticleBrief(
+                    prev.getId(), prev.getTitle()));
+        }
+        if (index < articles.size() - 1) {
+            Article next = articles.get(index + 1);
+            neighbors.setNext(new ArticleNeighbors.ArticleBrief(
+                    next.getId(), next.getTitle()));
+        }
+        return neighbors;
     }
 
     @Override

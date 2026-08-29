@@ -55,6 +55,9 @@ AncauqL_blog/
 - Vue Router 3.5.1：前端路由，当前使用 `history` 模式。
 - Element UI 2.15.14：布局、按钮、表格、弹窗、表单、消息提示等 UI 组件。
 - Axios 1.18.0：前后端请求。
+- markdown-it 15：文章正文 Markdown 渲染。
+- highlight.js 11：代码块语法高亮，按需注册常用语言。
+- DOMPurify 3：渲染后 HTML 消毒，防 XSS。
 - Vue CLI 5：本地开发、构建、Babel 编译。
 - core-js / Babel：浏览器兼容处理。
 
@@ -75,8 +78,13 @@ AncauqL_blog/
   - 客户端分页，每页 6 篇。
 - 文章详情页：`/post/:id`
   - 请求 `/article/detail?id=文章ID`。
-  - 展示标题、创建时间、状态、阅读数、摘要、正文。
-  - 正文当前按纯文本显示，不做 Markdown 渲染。
+  - 正文按 Markdown 渲染：标题、列表、引用、表格、图片、代码块。
+  - 代码块带语言标签、语法高亮和一键复制按钮。
+  - 宽屏下右侧显示自动生成的目录，支持点击跳转和滚动高亮。
+  - 元信息展示创建时间、阅读数、全文字数、预计阅读时长。
+  - 底部提供上一篇 / 下一篇导航（仅限已发布文章）。
+  - 游客每次打开已发布文章，阅读数自动 +1；管理员预览不计数。
+  - 管理员查看草稿时显示“草稿预览”标记。
 - 关于我：`/aboutme`
   - 静态个人介绍页面。
 
@@ -140,7 +148,8 @@ AncauqL_blog/
 ### 文章接口
 
 - `GET /article/selectAll`：查询全部文章。
-- `GET /article/detail?id=文章ID`：按 ID 查询文章详情。
+- `GET /article/detail?id=文章ID`：按 ID 查询文章详情；游客访问已发布文章时阅读数 +1。
+- `GET /article/neighbors?id=文章ID`：查询上一篇 / 下一篇（按发布时间排序，仅返回已发布文章的 id 和标题）。
 - `GET /article/selectSearch?articleTitle=关键词`：按标题模糊搜索。
 - `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词`：分页查询。
 - `POST /article`：新增或编辑文章；请求体带 `id` 时编辑，不带 `id` 时新增。
@@ -178,7 +187,7 @@ AncauqL_blog/
 - `category_id`：分类 ID。
 - `user_id`：作者 ID。
 - `status`：文章状态，当前使用 `published` / `draft`。
-- `view_count`：阅读数，当前详情页只展示，不会自动递增。
+- `view_count`：阅读数，游客打开已发布文章详情时自动递增（数据库端原子自增）。
 - `create_time` / `update_time`：创建与更新时间。
 
 `category` 表：
@@ -289,7 +298,7 @@ npm run build
 - 前端请求地址目前硬编码为 `http://localhost:9999`，后续建议改为 `.env` 配置。
 - 前端路由使用 `history` 模式，部署到 Nginx 或其他静态服务器时，需要配置 fallback 到 `index.html`。
 - 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。
-- 文章正文虽然示例数据里有 Markdown 风格内容，但页面现在按纯文本展示。
+- 文章正文按 Markdown 渲染，渲染结果经 DOMPurify 消毒；写作时可放心使用标准 Markdown 语法。
 - `cover` 字段已经存在，但首页、详情页、文章管理表格当前都没有真正使用封面展示。
 - 首页是客户端分页；后端已经有 `/article/selectPage`，后续文章变多后可以切成服务端分页。
 - 游客直接访问草稿文章详情会返回 `403`。
@@ -302,6 +311,6 @@ npm run build
   - Node.js 22.17.1
   - npm 10.9.2
   - MySQL CLI 8.0.46
-- 当前命令行未找到 `mvn`。
+- 当前命令行未找到 `mvn`，但 `~/.m2/wrapper/dists` 下有可直接调用的 Apache Maven 3.9.16（`bin/mvn.cmd`），可用于命令行编译验证。
 - 已执行 `npm run build`，前端构建成功。
 - 构建时有 vendor 包体积警告，主要来自 Element UI 依赖；不影响当前运行，但属于后续性能优化点。

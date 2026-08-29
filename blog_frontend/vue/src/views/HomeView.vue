@@ -43,6 +43,7 @@
 
 <script>
 import request from '@/utils/request'
+import { stripMarkdown } from '@/utils/markdown'
 
 export default {
   name: 'HomeView',
@@ -83,10 +84,11 @@ export default {
       this.$router.push('/post/' + id)
     },
     getContentPreview(content) {
-      if (!content) {
+      const text = stripMarkdown(content)
+      if (!text) {
         return '暂无摘要'
       }
-      return content.replace(/\s+/g, ' ').slice(0, 90)
+      return text.slice(0, 90)
     },
     getStatusText(status) {
       if (status === 'published') {

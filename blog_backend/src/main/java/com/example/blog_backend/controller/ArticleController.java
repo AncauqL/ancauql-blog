@@ -36,7 +36,21 @@ public class ArticleController {
                 !AuthContext.isManager()) {
             return Result.forbidden();
         }
+        // 访客阅读已发布文章时阅读量 +1；管理员预览不计数
+        if ("published".equals(article.getStatus()) &&
+                !AuthContext.isManager()) {
+            articleService.increaseViewCount(id);
+            int current = article.getViewCount() == null
+                    ? 0 : article.getViewCount();
+            article.setViewCount(current + 1);
+        }
         return Result.success(article);
+    }
+
+    // 查询上一篇 / 下一篇（仅限已发布文章）
+    @GetMapping("/neighbors")
+    public Result neighbors(@RequestParam Integer id) {
+        return Result.success(articleService.selectNeighbors(id));
     }
 
     // 模糊搜索
