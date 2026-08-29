@@ -26,9 +26,13 @@ Thumbs.db
 
 # logs
 *.log
+*.err
 
 # env
 .env
 
 #报告
-.报告/
+报告/
+
+# local iteration notes
+ITERATION_BASE.md
