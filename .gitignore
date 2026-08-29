@@ -30,6 +30,7 @@ Thumbs.db
 
 # env
 .env
+dev-env.bat
 
 #报告
 报告/
