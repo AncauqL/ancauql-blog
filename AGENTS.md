@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件。**
 
-最后更新：2026-08-29（完成写作体验迭代后）
+最后更新：2026-08-31（完成前台换脸 M3-④ 后）
 
 ---
 
@@ -21,7 +21,6 @@ AncauqL_blog/
 ├─ CLAUDE.md                  ← Claude Code 自动加载的入口，指向本文件
 ├─ PROJECT_OVERVIEW.md        ← 正式项目说明（功能/接口/启动），改功能后必须同步
 ├─ ITERATION_BASE.md          ← 本地迭代笔记（已 gitignore，只在本机存在）
-├─ AUTH_PERMISSION_DEBUG.md   ← 权限系统的调试记录（历史文档，一般不动）
 ├─ start-dev.bat / stop-dev.bat / dev-env.example.bat  ← 一键启动/停止脚本（GBK 编码！）
 ├─ dev-env.bat                ← 本机数据库密码（gitignore，勿提交勿外传）
 ├─ blog_backend/              ← Spring Boot，端口 9999
@@ -29,16 +28,20 @@ AncauqL_blog/
 │     ├─ controller/          ← Hello / Auth / Article / Category / User / File
 │     ├─ service/ + impl/     ← 业务层
 │     ├─ mapper/              ← MyBatis-Plus Mapper（基本无 XML，UserMapper.xml 除外）
-│     ├─ entity/ dto/         ← 实体与传输对象
+│     ├─ entity/ dto/         ← 实体与传输对象（dto 含 ArchiveGroup / ArticleNeighbors）
 │     ├─ common/              ← Result / AuthContext / PasswordUtil / RoleUtil
 │     └─ config/              ← WebConfig（拦截器+静态资源）/ AuthInterceptor / MybatisPlusConfig
 ├─ blog_frontend/vue/         ← Vue 2 + Element UI，开发端口 8080（本机实际 8081，见 §5）
 │  └─ src/
-│     ├─ utils/request.js     ← axios 实例，导出 API_BASE
+│     ├─ App.vue              ← 顶层布局切换器（按 $route.meta.layout 选前后台布局）
+│     ├─ layouts/             ← FrontLayout（顶栏+页脚）/ AdminLayout（侧边栏）
+│     ├─ config/site.js       ← 站名/作者/slogan/备案号常量
+│     ├─ utils/request.js     ← axios 实例，导出 API_BASE / resolveAsset
+│     ├─ utils/auth.js        ← 登录态工具（getStoredUser / isManager / logout 等）
 │     ├─ utils/markdown.js    ← Markdown 渲染管线（渲染/高亮/消毒/字数统计），渲染必须复用它
 │     ├─ assets/css/markdown.css ← 正文排版样式（markdown.js 引入，详情页+编辑器共用）
-│     ├─ router/index.js      ← 路由 + 登录/角色守卫
-│     └─ views/               ← HomeView / ArticleDetail / ArticleEditor / Article / Category / User / Login / AboutMe
+│     ├─ router/index.js      ← 路由 + 登录/角色守卫 + meta.layout
+│     └─ views/               ← HomeView / Archive / ArticleDetail / ArticleEditor / Article / Category / User / Login / AboutMe
 └─ database/blog_system.sql   ← 主库脚本（含种子数据）
 ```
 
@@ -53,7 +56,18 @@ AncauqL_blog/
   - 图片上传 `POST /file/upload` → 本地 `./uploads`，`/uploads/**` 静态访问
   - 首页与文章管理均为服务端分页；列表接口不返回 content 大字段
   - 一键启动/停止脚本
-- [ ] **M3 可上线版**：前台换脸、安全硬化、部署（见 §11 路线图）
+- [ ] **M3 可上线版**：
+  - [x] ④ 前台换脸（2026-08-31 完成）：
+    - 布局拆分：`App.vue` 只做切换器，`layouts/FrontLayout.vue`（顶部极简导航+页脚）
+      与 `layouts/AdminLayout.vue`（深色侧边栏）按 `$route.meta.layout` 渲染
+    - 站点信息常量 `config/site.js`（站名/作者/slogan/备案号，M4 改配置表）
+    - 登录态工具 `utils/auth.js`（getStoredUser/isManager/isSuperAdmin/logout 等共用）
+    - 首页：门面区（站名+slogan）、分类筛选条（服务端 categoryId 过滤）、封面缩略图卡片
+    - 详情页：cover 头图 + 分类名展示
+    - 归档页 `/archive` + 新接口 `GET /article/archive`（按年份分组倒序，仅已发布）
+    - 路由全部前台化：`/post/:id` 详情、`/archive`、`/aboutme`、`/login` 均无管理布局
+    - 移动端 ≤640px 适配（导航收纳、封面缩小）
+  - [ ] ⑤ 安全硬化 + 部署上线
 - [ ] **M4 长期增强**：RSS、评论、标签、统计
 
 ## 4. 铁律（违反任何一条都算事故）
@@ -152,6 +166,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | GET /article/selectPage | 公开* | 参数全可选：pageNum=1, pageSize=10, articleTitle, status（status 仅管理员生效，游客恒 published）；按 create_time desc, id desc；不含 content |
 | GET /article/detail?id= | 公开* | 草稿仅管理员可见(403)；游客访问已发布文章时 view_count 原子 +1，管理员预览不计数 |
 | GET /article/neighbors?id= | 公开 | 已发布文章的上一篇/下一篇 `{prev:{id,title},next:{...}}`，按 create_time asc, id asc |
+| GET /article/archive | 公开 | 归档：已发布文章按年分组 `[{year, articles:[{id,title,createTime}]}]`，年份与组内均倒序 |
 | POST /article | 管理员 | 带 id 更新 / 无 id 新增；**返回带 id 的完整对象** |
 | DELETE /article/delete?id= | 管理员 | |
 | GET /category/selectAll 等 | 公开读/管理员写 | 同 article 模式 |
@@ -180,7 +195,9 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 
 ## 11. 路线图（按优先级；做之前把本节对应任务读三遍）
 
-### ④ 前台换脸（下一个大步）
+### ④ 前台换脸（✅ 2026-08-31 完成，见 §3）
+
+**目标**：访客看到的是真正的博客门面，不是管理系统。前后台布局分离。
 
 **目标**：访客看到的是真正的博客门面，不是管理系统。前后台布局分离。
 
@@ -198,7 +215,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
   两条验证命令全绿；手机宽度（375px）下首页/详情页可正常阅读。
 - **暂不做**：深色模式、Vue3 迁移、评论。
 
-### ⑤ 安全硬化 + 部署上线
+### ⑤ 安全硬化 + 部署上线（下一个大步）
 
 - 密码改 BCrypt：只引 `spring-security-crypto`（不要引全家桶），
   `PasswordUtil` 增加 `BCRYPT:` 前缀分支，兼容存量 `SHA256:` 与明文的登录升级链。
@@ -230,11 +247,11 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - CORS 全开 `*`（⑤解决）。
 - `selectAll` / `selectSearch` 旧接口仍返回全文 content，前端已不用于列表，暂留兼容。
 - 编辑器左右分栏无滚动同步（体验项，有空再做）。
-- cover 已可上传但前台还没展示（④解决）。
-- 前台整体仍是管理后台长相（④解决）。
 - uploads 目录无孤儿图片清理机制（文章删了图还在，暂不处理）。
 - Element UI vendor 包 1.2MB（按需引入或 Vue3 迁移时一并解决）。
 - 首次 `git push` 前需站主确认 GitHub 远端状态（本地 main 已领先 origin 多个提交）。
+- e2e 起后端时 `DB_PASSWORD` 必须加引号导出：密码含特殊字符，经 grep/cut 管道
+  后未加引号会被 shell 拆坏（2026-08-31 踩坑：Access denied）。
 
 ## 13. 关键决策历史（为什么是现在这样）
 

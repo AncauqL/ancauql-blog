@@ -63,19 +63,26 @@ public class ArticleController {
                 Result.success(articleService.selectSearch(articleTitle));
     }
 
-    // 分页查询（articleTitle / status 均可选；status 仅对管理员生效）
+    // 归档：已发布文章按年份分组
+    @GetMapping("/archive")
+    public Result archive() {
+        return Result.success(articleService.selectArchive());
+    }
+
+    // 分页查询（articleTitle / status / categoryId 均可选；status 仅对管理员生效）
     @GetMapping("/selectPage")
     public Result selectByPage(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false, defaultValue = "") String articleTitle,
-            @RequestParam(required = false, defaultValue = "") String status) {
+            @RequestParam(required = false, defaultValue = "") String status,
+            @RequestParam(required = false) Integer categoryId) {
         if (!AuthContext.isManager()) {
             return Result.success(articleService.selectPublishedPage(pageNum,
-                    pageSize, articleTitle));
+                    pageSize, articleTitle, categoryId));
         }
         return Result.success(articleService.selectPage(pageNum,
-                pageSize, articleTitle, status));
+                pageSize, articleTitle, status, categoryId));
     }
 
     // 新增 / 编辑（id为null则新增，有id则更新）；返回带 id 的文章对象

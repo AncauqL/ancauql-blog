@@ -25,15 +25,18 @@ AncauqL_blog/
 │  ├─ vue.config.js              # Vue CLI 配置
 │  ├─ public/                    # 静态入口资源
 │  └─ src/
-│     ├─ App.vue                 # 顶层布局、侧边导航
+│     ├─ App.vue                 # 顶层布局切换器（前台 / 后台）
+│     ├─ layouts/                # FrontLayout（顶栏+页脚）与 AdminLayout（侧边栏）
+│     ├─ config/site.js          # 站点名、作者、slogan 等常量
 │     ├─ main.js                 # Vue 入口
-│     ├─ router/index.js         # 前端路由
-│     ├─ utils/request.js        # Axios 实例
+│     ├─ router/index.js         # 前端路由（meta.layout 区分前后台）
+│     ├─ utils/request.js        # Axios 实例、API_BASE、resolveAsset
+│     ├─ utils/auth.js           # 登录态读取 / 退出等共享工具
+│     ├─ utils/markdown.js       # Markdown 渲染管线
 │     ├─ views/                  # 页面组件
 │     └─ assets/                 # 样式与 logo
 └─ database/
-   ├─ blog_system.sql            # 当前博客主库脚本
-   └─ springboot.sql             # 早期用户管理练习库脚本
+   └─ blog_system.sql            # 当前博客主库脚本
 ```
 
 ## 技术栈
@@ -71,24 +74,31 @@ AncauqL_blog/
 
 ### 访客侧页面
 
+前台使用独立布局（`FrontLayout`）：顶部导航（首页 / 归档 / 关于我 + 登录入口）+ 页脚，无任何后台元素；移动端自适应。
+
 - 首页文章列表：`/`
-  - 请求 `/article/selectAll`。
-  - 前端过滤掉 `status === 'draft'` 的文章。
-  - 按创建时间倒序展示。
-  - 客户端分页，每页 6 篇。
+  - 站点门面区：站名 + slogan（`src/config/site.js` 配置）。
+  - 分类筛选条：点击分类只看该分类文章。
+  - 服务端分页（`/article/selectPage`，每页 6 篇，时间倒序），只展示已发布文章。
+  - 卡片展示标题、摘要、日期、分类名、阅读数、封面缩略图（有封面时）。
 - 文章详情页：`/post/:id`
   - 请求 `/article/detail?id=文章ID`。
   - 正文按 Markdown 渲染：标题、列表、引用、表格、图片、代码块。
   - 代码块带语言标签、语法高亮和一键复制按钮。
   - 宽屏下右侧显示自动生成的目录，支持点击跳转和滚动高亮。
-  - 元信息展示创建时间、阅读数、全文字数、预计阅读时长。
+  - 元信息展示创建时间、分类名、阅读数、全文字数、预计阅读时长。
+  - 有封面时展示头图。
   - 底部提供上一篇 / 下一篇导航（仅限已发布文章）。
   - 游客每次打开已发布文章，阅读数自动 +1；管理员预览不计数。
   - 管理员查看草稿时显示“草稿预览”标记。
+- 归档页：`/archive`
+  - 请求 `/article/archive`，按年份分组展示全部已发布文章（倒序）。
 - 关于我：`/aboutme`
   - 静态个人介绍页面。
 
 ### 管理侧页面
+
+后台使用独立布局（`AdminLayout`，`meta.layout: 'admin'` 的路由）：深色侧边栏（文章管理 / 分类管理 / 账号管理 / 查看前台）。前台顶栏对管理员显示「进入后台」入口。
 
 - 分类管理：`/category`
   - 展示所有分类，按 `sort` 升序排序。
@@ -157,10 +167,11 @@ AncauqL_blog/
 - `GET /article/detail?id=文章ID`：按 ID 查询文章详情；游客访问已发布文章时阅读数 +1。
 - `GET /article/neighbors?id=文章ID`：查询上一篇 / 下一篇（按发布时间排序，仅返回已发布文章的 id 和标题）。
 - `GET /article/selectSearch?articleTitle=关键词`：按标题模糊搜索（旧接口，新代码建议用 selectPage）。
-- `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词&status=状态`：分页查询。
+- `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词&status=状态&categoryId=分类ID`：分页查询。
   - 所有参数可选（pageNum 默认 1，pageSize 默认 10）。
   - 按创建时间倒序、id 倒序排列；**返回结果不含 content 大字段**，正文用 detail 单查。
-  - status 过滤仅对管理员生效；游客恒定只看到已发布文章。
+  - status 过滤仅对管理员生效；游客恒定只看到已发布文章。categoryId 对所有人生效。
+- `GET /article/archive`：归档数据，已发布文章按年份分组（年份与组内均倒序），元素为 `{year, articles:[{id,title,createTime}]}`。
 - `POST /article`：新增或编辑文章；请求体带 `id` 时编辑，不带 `id` 时新增。**返回带 id 的完整文章对象**。
 - `DELETE /article/delete?id=文章ID`：删除文章。
 
@@ -223,13 +234,6 @@ AncauqL_blog/
 - `role`：角色，当前使用 `SUPER_ADMIN` / `ADMIN`。
 - `email`：邮箱。
 - `create_time`：创建时间。
-
-### 早期库：`database/springboot.sql`
-
-- 库名为 `springboot`。
-- 只有 `user` 表。
-- 字段结构对应早期用户管理练习，不再对应当前账号系统。
-- 当前后端默认不连接该库。
 
 ## 启动方式
 
@@ -326,7 +330,7 @@ npm run build
 - 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。
 - 文章正文按 Markdown 渲染，渲染结果经 DOMPurify 消毒；写作时可放心使用标准 Markdown 语法。
 - 正文与封面中的站内图片存**相对路径** `/uploads/...`，前端渲染时拼接 `request.js` 导出的 `API_BASE`；部署换域名只改一处。
-- `cover` 字段编辑器里已支持上传设置，但首页 / 详情页的封面展示还没做（前台改版时处理）。
+- 站点名 / 作者 / slogan / 备案号在 `src/config/site.js` 修改。
 - 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容。
 - 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。

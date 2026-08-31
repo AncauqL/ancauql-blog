@@ -3,6 +3,14 @@ import axios from 'axios'
 // 后端服务地址：markdown 渲染、图片上传回显等都从这里取，改地址只改这一处
 export const API_BASE = 'http://localhost:9999'
 
+/** 站内上传的图片存相对路径（/uploads/...），展示时统一走这里拼接后端地址 */
+export function resolveAsset(url) {
+    if (url && url.startsWith('/uploads/')) {
+        return API_BASE + url
+    }
+    return url
+}
+
 // 创建一个新的axios实例
 const request = axios.create({
     baseURL: API_BASE,

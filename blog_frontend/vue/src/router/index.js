@@ -16,7 +16,8 @@ const routes = [
     component: () => import('../views/Category.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['SUPER_ADMIN', 'ADMIN']
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
     }
   },
   {
@@ -25,7 +26,8 @@ const routes = [
     component: () => import('../views/Article.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['SUPER_ADMIN', 'ADMIN']
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
     }
   },
   {
@@ -34,8 +36,14 @@ const routes = [
     component: () => import('../views/ArticleEditor.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['SUPER_ADMIN', 'ADMIN']
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
     }
+  },
+  {
+    path: '/archive',
+    name: 'Archive',
+    component: () => import('../views/Archive.vue')
   },
   {
     path: '/post/:id',
@@ -58,7 +66,8 @@ const routes = [
     component: () => import('../views/User.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['SUPER_ADMIN']
+      roles: ['SUPER_ADMIN'],
+      layout: 'admin'
     }
   },
 ]
