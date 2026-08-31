@@ -249,7 +249,6 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - 编辑器左右分栏无滚动同步（体验项，有空再做）。
 - uploads 目录无孤儿图片清理机制（文章删了图还在，暂不处理）。
 - Element UI vendor 包 1.2MB（按需引入或 Vue3 迁移时一并解决）。
-- 首次 `git push` 前需站主确认 GitHub 远端状态（本地 main 已领先 origin 多个提交）。
 - e2e 起后端时 `DB_PASSWORD` 必须加引号导出：密码含特殊字符，经 grep/cut 管道
   后未加引号会被 shell 拆坏（2026-08-31 踩坑：Access denied）。
 
