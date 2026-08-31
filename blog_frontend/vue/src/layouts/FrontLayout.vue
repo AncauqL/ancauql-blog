@@ -6,7 +6,7 @@
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2.5 group">
           <div class="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center group-hover:bg-neutral-700 transition-colors duration-300">
-            <span class="text-white text-sm font-semibold">墨</span>
+            <img :src="logoSvg" alt="logo" class="w-5 h-5 object-contain">
           </div>
           <span class="text-base font-semibold tracking-tight">{{ site.name }}</span>
         </router-link>
@@ -142,7 +142,7 @@
       <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-2.5">
           <div class="w-6 h-6 bg-neutral-900 rounded-md flex items-center justify-center">
-            <span class="text-white text-[10px] font-semibold">墨</span>
+            <img :src="resolveAsset('my_logo.svg')" alt="logo" class="w-4 h-4 object-contain">
           </div>
           <span class="text-sm text-neutral-400">© {{ yearRange }} {{ site.author }} · {{ site.slogan }}</span>
         </div>
@@ -175,6 +175,7 @@
 import { SITE } from '@/config/site'
 import { getStoredUser, isManager, logout } from '@/utils/auth'
 import request from '@/utils/request'
+import logoSvg from '@/assets/my_logo.svg'
 
 export default {
   name: 'FrontLayout',
@@ -185,7 +186,8 @@ export default {
       categoryList: [],
       searchQuery: '',
       searchResults: [],
-      searchTimer: null
+      searchTimer: null,
+      logoSvg
     }
   },
   created() {

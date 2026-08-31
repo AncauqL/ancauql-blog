@@ -3,7 +3,7 @@
  * 目前写死在前端；等做站点配置表（M4）后改为后台可编辑。
  */
 export const SITE = {
-  name: '墨白',
+  name: 'AncauqL',
   author: 'AncauqL',
   slogan: '思考，记录，然后遗忘。',
   // 首页 Hero 描述
