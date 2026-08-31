@@ -1,3 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== 基础（原 global.css，preflight 已关闭故手工保留） ===== */
+
 /* 清除默认内外边距 */
 * {
     margin: 0;
@@ -8,3 +14,52 @@
 * {
     box-sizing: border-box;
 }
+
+/* preflight 关闭后 border-* 工具类缺省的 border-style */
+* {
+    border-style: solid;
+    border-width: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* ===== 前台新设计的全局样式（迁移自 新前端.html） ===== */
+
+/* 滚动条 */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f5f5f5;
+}
+::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+}
+
+/* 文字选中 */
+::selection {
+    background: #0a0a0a;
+    color: #fff;
+}
+
+/* 进入动画 */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+    opacity: 0;
+    animation: fadeInUp 0.7s ease-out forwards;
+}
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }

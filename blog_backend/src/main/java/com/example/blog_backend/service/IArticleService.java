@@ -3,6 +3,7 @@ package com.example.blog_backend.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.blog_backend.dto.ArchiveGroup;
 import com.example.blog_backend.dto.ArticleNeighbors;
+import com.example.blog_backend.dto.SiteStats;
 import com.example.blog_backend.entity.Article;
 import java.util.List;
 
@@ -22,6 +23,9 @@ public interface IArticleService {
 
     /** 归档：已发布文章按年份分组（年份与组内文章均倒序） */
     List<ArchiveGroup> selectArchive();
+
+    /** 站点统计：已发布文章数 + 总阅读量 */
+    SiteStats selectStats();
 
     /**
      * 管理端分页：可按标题模糊、状态精确、分类精确过滤。

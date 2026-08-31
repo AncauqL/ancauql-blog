@@ -56,7 +56,10 @@ AncauqL_blog/
 
 - Vue 2.6.14：页面组件框架。
 - Vue Router 3.5.1：前端路由，当前使用 `history` 模式。
-- Element UI 2.15.14：布局、按钮、表格、弹窗、表单、消息提示等 UI 组件。
+- Element UI 2.15.14：布局、按钮、表格、弹窗、表单、消息提示等 UI 组件（后台主力；前台新设计不依赖它）。
+- Tailwind CSS 3.4：前台工具类样式（preflight 关闭以兼容 Element UI，缺省 border-style 在 global.css 手工补齐）。
+- @fontsource/inter：Inter 字体自托管（前台设计指定字体，国内不走 Google Fonts CDN）。
+- lucide 图标：静态内联 SVG 组件（`src/components/icons/`），不引 iconify 运行时。
 - Axios 1.18.0：前后端请求。
 - markdown-it 15：文章正文 Markdown 渲染。
 - highlight.js 11：代码块语法高亮，按需注册常用语言。
@@ -74,13 +77,17 @@ AncauqL_blog/
 
 ### 访客侧页面
 
-前台使用独立布局（`FrontLayout`）：顶部导航（首页 / 归档 / 关于我 + 登录入口）+ 页脚，无任何后台元素；移动端自适应。
+前台使用独立布局（`FrontLayout`，墨白极简设计）：固定顶部导航（滚动 >20px 加毛玻璃背景；含文章 / 归档 / 关于 + 搜索 + 极简登录入口）+ 页脚 + 回到顶部按钮；移动端为右侧滑入全屏菜单；全局搜索覆盖层（Ctrl+K 打开、ESC 关闭、300ms 防抖走后端标题模糊查）。样式基于 Tailwind 工具类 + 自托管 Inter 字体。
 
-- 首页文章列表：`/`
-  - 站点门面区：站名 + slogan（`src/config/site.js` 配置）。
-  - 分类筛选条：点击分类只看该分类文章。
-  - 服务端分页（`/article/selectPage`，每页 6 篇，时间倒序），只展示已发布文章。
-  - 卡片展示标题、摘要、日期、分类名、阅读数、封面缩略图（有封面时）。
+- 首页：`/`
+  - Hero 区：大标题（“思考，记录，然后遗忘。”，末段刻意用 `text-neutral-300` 灰色）+ 描述 + 双 CTA 按钮 + 三组统计数字（文章数 / 总阅读来自 `/article/stats`，写作年数按建站年份计算）。
+  - 精选文章大卡：最新一篇已发布文章，全宽深色背景（有封面时图 `opacity-50`，hover 降到 0.40）。
+  - 文章网格：三列（移动一列 / 平板两列），`gap-6`，卡片图 `aspect-[4/3]`、hover `scale(1.05)` 0.6s 缓动。
+  - 分类筛选条：真实分类 `categoryId` 服务端过滤（选中态黑底白字圆角按钮）。
+  - “加载更多”：真分页追加（服务端 selectPage 翻页），到底显示“已加载全部文章”。
+  - 关于我区：左图右文两栏，肖像默认灰度 hover 恢复（0.7s 过渡）。
+  - 订阅区：假订阅表单，内联成功消息 4 秒后消失（按设计稿，不发真请求）。
+  - 分割线动画：滚动进入视口时从 0 展开 to 48px。
 - 文章详情页：`/post/:id`
   - 请求 `/article/detail?id=文章ID`。
   - 正文按 Markdown 渲染：标题、列表、引用、表格、图片、代码块。
@@ -172,6 +179,7 @@ AncauqL_blog/
   - 按创建时间倒序、id 倒序排列；**返回结果不含 content 大字段**，正文用 detail 单查。
   - status 过滤仅对管理员生效；游客恒定只看到已发布文章。categoryId 对所有人生效。
 - `GET /article/archive`：归档数据，已发布文章按年份分组（年份与组内均倒序），元素为 `{year, articles:[{id,title,createTime}]}`。
+- `GET /article/stats`：站点统计，返回 `{articleCount, totalViews}`（仅统计已发布文章；写作年数由前端按建站年份计算）。
 - `POST /article`：新增或编辑文章；请求体带 `id` 时编辑，不带 `id` 时新增。**返回带 id 的完整文章对象**。
 - `DELETE /article/delete?id=文章ID`：删除文章。
 

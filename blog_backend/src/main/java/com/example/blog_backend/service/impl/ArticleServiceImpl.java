@@ -7,6 +7,7 @@ import
         com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.blog_backend.dto.ArchiveGroup;
 import com.example.blog_backend.dto.ArticleNeighbors;
+import com.example.blog_backend.dto.SiteStats;
 import com.example.blog_backend.entity.Article;
 import com.example.blog_backend.mapper.ArticleMapper;
 import com.example.blog_backend.service.IArticleService;
@@ -154,6 +155,22 @@ public class ArticleServiceImpl implements IArticleService {
                     article.getCreateTime()));
         }
         return groups;
+    }
+
+    @Override
+    public SiteStats selectStats() {
+        LambdaQueryWrapper<Article> wrapper = new
+                LambdaQueryWrapper<>();
+        wrapper.select(Article::getStatus, Article::getViewCount);
+        wrapper.eq(Article::getStatus, "published");
+        List<Article> articles = articleMapper.selectList(wrapper);
+
+        long totalViews = 0;
+        for (Article article : articles) {
+            totalViews += article.getViewCount() == null
+                    ? 0 : article.getViewCount();
+        }
+        return new SiteStats((long) articles.size(), totalViews);
     }
 
     /**

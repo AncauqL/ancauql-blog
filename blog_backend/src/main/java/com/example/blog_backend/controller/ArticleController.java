@@ -69,6 +69,12 @@ public class ArticleController {
         return Result.success(articleService.selectArchive());
     }
 
+    // 站点统计：已发布文章数 + 总阅读量（写作年数由前端按建站年份计算）
+    @GetMapping("/stats")
+    public Result stats() {
+        return Result.success(articleService.selectStats());
+    }
+
     // 分页查询（articleTitle / status / categoryId 均可选；status 仅对管理员生效）
     @GetMapping("/selectPage")
     public Result selectByPage(
