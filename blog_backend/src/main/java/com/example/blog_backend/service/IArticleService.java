@@ -1,6 +1,7 @@
 package com.example.blog_backend.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.example.blog_backend.dto.ArchiveGroup;
 import com.example.blog_backend.dto.ArticleNeighbors;
 import com.example.blog_backend.entity.Article;
 import java.util.List;
@@ -18,18 +19,23 @@ public interface IArticleService {
 
     List<Article> selectSearch(String articleTitle);
     List<Article> selectPublishedSearch(String articleTitle);
+
+    /** 归档：已发布文章按年份分组（年份与组内文章均倒序） */
+    List<ArchiveGroup> selectArchive();
+
     /**
-     * 管理端分页：可按标题模糊、状态精确过滤。
+     * 管理端分页：可按标题模糊、状态精确、分类精确过滤。
      * 按创建时间倒序；列表不返回 content 字段（正文过大，编辑时用 detail 单查）。
      */
     IPage<Article> selectPage(Integer pageNum, Integer pageSize,
-                           String articleTitle, String status);
+                           String articleTitle, String status,
+                           Integer categoryId);
 
     /**
      * 访客分页：只返回已发布文章，其余同 selectPage。
      */
     IPage<Article> selectPublishedPage(Integer pageNum, Integer pageSize,
-                           String articleTitle);
+                           String articleTitle, Integer categoryId);
     void insert(Article article);
     void update(Article article);
     void delete(Integer id);

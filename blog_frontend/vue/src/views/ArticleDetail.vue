@@ -14,6 +14,7 @@
 
         <div class="meta">
           <span>{{ formatTime(article.createTime) }}</span>
+          <span v-if="categoryName">{{ categoryName }}</span>
           <span>阅读 {{ article.viewCount || 0 }}</span>
           <span v-if="wordCount">全文 {{ wordCount }} 字</span>
           <span v-if="minutes">约 {{ minutes }} 分钟读完</span>
@@ -25,6 +26,13 @@
             草稿预览
           </el-tag>
         </div>
+
+        <img
+            v-if="article.cover"
+            :src="resolveAsset(article.cover)"
+            class="cover-hero"
+            alt=""
+        >
 
         <p v-if="article.summary" class="summary">
           {{ article.summary }}
@@ -89,7 +97,7 @@
 </template>
 
 <script>
-import request from '@/utils/request'
+import request, { resolveAsset } from '@/utils/request'
 import { renderMarkdown, countWords, readingMinutes } from '@/utils/markdown'
 
 export default {
@@ -97,6 +105,7 @@ export default {
   data() {
     return {
       article: null,
+      categoryList: [],
       loaded: false,
       errorText: '文章不存在',
       neighbors: {
@@ -117,6 +126,14 @@ export default {
     },
     minutes() {
       return this.article ? readingMinutes(this.article.content) : 0
+    },
+    categoryName() {
+      if (!this.article || !this.article.categoryId) {
+        return ''
+      }
+      const category = this.categoryList.find(
+          item => item.id === this.article.categoryId)
+      return category ? category.name : ''
     }
   },
   watch: {
@@ -128,11 +145,13 @@ export default {
   },
   created() {
     this.load()
+    this.loadCategories()
   },
   beforeDestroy() {
     this.disconnectObserver()
   },
   methods: {
+    resolveAsset,
     reset() {
       this.disconnectObserver()
       this.article = null
@@ -178,6 +197,13 @@ export default {
       }).catch(() => {
         // 导航失败不影响正文阅读，静默处理
       })
+    },
+    loadCategories() {
+      request.get('/category/selectAll').then(res => {
+        if (res.code === '200') {
+          this.categoryList = res.data || []
+        }
+      }).catch(() => {})
     },
 
     /* ---------- 目录 ---------- */
@@ -354,6 +380,16 @@ export default {
 
 .markdown-body {
   margin-top: 30px;
+}
+
+.cover-hero {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-top: 24px;
+  border: 1px solid #ebeef5;
 }
 
 /* ---------- 目录 ---------- */

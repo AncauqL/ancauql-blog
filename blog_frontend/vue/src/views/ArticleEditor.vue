@@ -133,7 +133,7 @@
 </template>
 
 <script>
-import request, { API_BASE } from '@/utils/request'
+import request, { resolveAsset } from '@/utils/request'
 import { renderMarkdown, countWords } from '@/utils/markdown'
 
 export default {
@@ -405,12 +405,7 @@ export default {
         }
       }
     },
-    resolveAsset(url) {
-      if (url && url.startsWith('/uploads/')) {
-        return API_BASE + url
-      }
-      return url
-    },
+    resolveAsset,
 
     /* ---------- 编辑辅助 ---------- */
     insertAtCursor(text) {
