@@ -98,9 +98,11 @@
         type="button"
         class="toc-toggle"
         :title="tocOpen ? '收起目录' : '展开目录'"
+        :aria-label="tocOpen ? '收起目录' : '展开目录'"
         @click="tocOpen = !tocOpen"
     >
-      {{ tocOpen ? '收起目录' : '目录' }}
+      <icon-toc v-if="!tocOpen" :width="18" />
+      <icon-x v-else :width="16" />
     </button>
 
     <el-empty
@@ -344,13 +346,15 @@ export default {
   top: 84px;
   right: 16px;
   z-index: 30;
-  height: 34px;
-  padding: 0 16px;
-  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   border: 1px solid #e5e7eb;
   background: #fff;
   color: #4b5563;
-  font-size: 13px;
   cursor: pointer;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
   transition: color 0.2s ease, border-color 0.2s ease;

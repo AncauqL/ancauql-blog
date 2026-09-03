@@ -38,6 +38,10 @@ define('icon-menu', [
   'M4 12h16',
   'M4 18h16'
 ])
+define('icon-toc', [
+  'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z',
+  'M9 3v18'
+])
 define('icon-x', [
   'M18 6 6 18',
   'm6 6 12 12'
