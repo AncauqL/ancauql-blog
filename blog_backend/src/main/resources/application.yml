@@ -15,6 +15,10 @@ spring:
 blog:
   # 图片上传保存目录（相对路径基于后端进程工作目录）
   upload-dir: ./uploads
+  # RSS 订阅源信息
+  site-title: AncauqL 的个人博客
+  # 前台站点基址（feed 文章链接会拼它）；换域名用 BLOG_SITE_URL 覆盖
+  site-url: "${BLOG_SITE_URL:http://localhost:8081}"
 
 mybatis-plus:
   mapper-locations: classpath:mappers/*.xml
