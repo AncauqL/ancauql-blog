@@ -153,18 +153,20 @@
     </section>
 
     <!-- ======== 关于我 ======== -->
-    <section id="about" class="px-6 pb-20 md:pb-32">
+    <section id="about" class="px-6 pb-20 md:pb-24">
       <div class="max-w-7xl mx-auto">
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-20 items-center">
-          <!-- 图片 -->
+          <!-- 图片（没设肖像图就用站名首字母占位，不会裂图） -->
           <div class="lg:col-span-2">
-            <div class="aspect-[3/4] rounded-2xl overflow-hidden bg-neutral-100">
-              <img
-                  :src="resolveAsset(site.portrait)"
-                  alt="作者"
-                  class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
-                  @error="onPortraitError"
-              >
+            <img
+                v-if="site.portrait && !portraitFailed"
+                :src="resolveAsset(site.portrait)"
+                alt="作者"
+                class="aspect-[3/4] w-full rounded-2xl object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                @error="onPortraitError"
+            >
+            <div v-else class="aspect-[3/4] w-full rounded-2xl bg-neutral-100 flex items-center justify-center select-none">
+              <span class="font-semibold text-neutral-300" style="font-size:112px;line-height:1">{{ initials }}</span>
             </div>
           </div>
           <!-- 文字 -->
@@ -172,21 +174,22 @@
             <div class="h-px bg-neutral-200 mb-6 divider-line" :class="{ visible: aboutDividerVisible }"></div>
             <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-6">关于我</h2>
             <div class="space-y-4 text-sm md:text-base text-neutral-500 font-light leading-relaxed">
-              <p>{{ site.aboutP1 }}</p>
-              <p>{{ site.aboutP2 }}</p>
-              <p>{{ site.aboutP3 }}</p>
+              <p v-for="(line, i) in site.aboutLines" :key="'about-' + i">{{ line }}</p>
+            </div>
+            <div class="mt-6">
+              <router-link to="/aboutme" class="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-900 hover:text-neutral-500 transition-colors">
+                完整介绍
+                <icon-arrow-right :width="14" />
+              </router-link>
             </div>
             <div class="mt-8 flex items-center gap-4">
-              <a v-if="site.github" :href="site.github" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="GitHub">
+              <a v-if="site.socials.github" :href="site.socials.github" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="GitHub">
                 <icon-github :width="17" />
               </a>
-              <a v-if="site.twitter" :href="site.twitter" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="Twitter">
-                <icon-twitter :width="17" />
+              <a v-if="site.socials.bilibili" :href="site.socials.bilibili" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="Bilibili">
+                <icon-bilibili :width="17" />
               </a>
-              <a v-if="site.dribbble" :href="site.dribbble" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="Dribbble">
-                <icon-dribbble :width="17" />
-              </a>
-              <a v-if="site.email" :href="'mailto:' + site.email" class="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="邮件">
+              <a v-if="site.socials.email" :href="'mailto:' + site.socials.email" class="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="邮箱">
                 <icon-mail :width="17" />
               </a>
             </div>
@@ -195,28 +198,36 @@
       </div>
     </section>
 
-    <!-- ======== 订阅区 ======== -->
+    <!-- ======== 保持联系（RSS + 社交 + 写信；不再做“假订阅”） ======== -->
     <section id="contact" class="px-6 pb-20 md:pb-32">
       <div class="max-w-7xl mx-auto">
         <div class="bg-neutral-50 rounded-2xl p-8 md:p-16 text-center">
           <div class="h-px bg-neutral-200 mb-6 divider-line mx-auto" :class="{ visible: subscribeDividerVisible }"></div>
           <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">保持联系</h2>
           <p class="mt-3 text-sm md:text-base text-neutral-500 font-light max-w-md mx-auto">
-            每月一封邮件，不长不短。没有废话，只有我觉得值得分享的内容。
+            想看新文章？订阅 RSS；想聊聊，给我写信，或到这些地方找我。
           </p>
-          <form class="mt-8 flex flex-col sm:flex-row items-center gap-3 max-w-md mx-auto" @submit.prevent="handleSubscribe">
-            <input
-                v-model="subscribeEmail"
-                type="email"
-                required
-                placeholder="your@email.com"
-                class="w-full sm:flex-1 h-11 px-5 text-sm rounded-full border border-neutral-200 bg-white outline-none focus:border-neutral-400 transition-colors placeholder:text-neutral-400"
+          <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+                :href="feedUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 h-11 px-6 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-700 transition-colors duration-300 whitespace-nowrap"
             >
-            <button type="submit" class="w-full sm:w-auto h-11 px-6 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-700 transition-colors duration-300 whitespace-nowrap">
-              订阅
-            </button>
-          </form>
-          <div class="mt-4 text-sm h-5" :class="subscribeSuccess ? 'text-neutral-900 font-medium' : 'text-neutral-400'">{{ subscribeMsg }}</div>
+              <icon-rss :width="15" /> RSS 订阅
+            </a>
+            <div class="flex items-center gap-2.5">
+              <a v-if="site.socials.github" :href="site.socials.github" target="_blank" rel="noopener noreferrer" class="w-11 h-11 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="GitHub">
+                <icon-github :width="18" />
+              </a>
+              <a v-if="site.socials.bilibili" :href="site.socials.bilibili" target="_blank" rel="noopener noreferrer" class="w-11 h-11 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="Bilibili">
+                <icon-bilibili :width="18" />
+              </a>
+              <a v-if="site.socials.email" :href="'mailto:' + site.socials.email" class="w-11 h-11 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300" aria-label="给我写信">
+                <icon-mail :width="18" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -224,7 +235,7 @@
 </template>
 
 <script>
-import request, { resolveAsset } from '@/utils/request'
+import request, { resolveAsset, API_BASE } from '@/utils/request'
 import { SITE } from '@/config/site'
 
 export default {
@@ -249,10 +260,6 @@ export default {
       postsDividerVisible: false,
       aboutDividerVisible: false,
       subscribeDividerVisible: false,
-      subscribeEmail: '',
-      subscribeMsg: '',
-      subscribeSuccess: false,
-      subscribeTimer: null,
       portraitFailed: false
     }
   },
@@ -262,6 +269,13 @@ export default {
     },
     loadMoreText() {
       return this.loadingMore ? '加载中…' : '加载更多'
+    },
+    initials() {
+      const name = (this.site && this.site.name) || 'A'
+      return name.trim().charAt(0).toUpperCase()
+    },
+    feedUrl() {
+      return API_BASE + '/feed.xml'
     }
   },
   created() {
@@ -275,9 +289,6 @@ export default {
   beforeDestroy() {
     if (this.observer) {
       this.observer.disconnect()
-    }
-    if (this.subscribeTimer) {
-      clearTimeout(this.subscribeTimer)
     }
   },
   methods: {
@@ -357,19 +368,6 @@ export default {
     categoryName(categoryId) {
       const category = this.categoryList.find(item => item.id === categoryId)
       return category ? category.name : '未分类'
-    },
-    handleSubscribe() {
-      // 假订阅：仅前端提示，4 秒后消失（按设计稿要求，不发真请求）
-      this.subscribeMsg = '✓ 订阅成功，感谢你的关注！'
-      this.subscribeSuccess = true
-      this.subscribeEmail = ''
-      if (this.subscribeTimer) {
-        clearTimeout(this.subscribeTimer)
-      }
-      this.subscribeTimer = setTimeout(() => {
-        this.subscribeMsg = ''
-        this.subscribeSuccess = false
-      }, 4000)
     },
     observeDividers() {
       // 分割线进入视口时展开；精选文章取列表第一篇（服务端已按时间倒序）

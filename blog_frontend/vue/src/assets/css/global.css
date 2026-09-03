@@ -25,6 +25,17 @@ html {
     scroll-behavior: smooth;
 }
 
+/* preflight 关闭导致 <button> 残留浏览器默认灰底/边框，这里清掉；
+   需要实底或边框的按钮用 Tailwind 类（类优先级更高，会自动覆盖）。 */
+button {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
 /* ===== 前台新设计的全局样式（迁移自 新前端.html） ===== */
 
 /* 滚动条 */

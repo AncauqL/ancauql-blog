@@ -85,9 +85,9 @@
         >登录</a>
         <div class="divider-line visible h-px bg-neutral-200 my-2" style="width:48px"></div>
         <div class="flex gap-4 pt-2">
-          <a href="javascript:void(0)" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="GitHub"><icon-github :width="20" /></a>
-          <a href="javascript:void(0)" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="Twitter"><icon-twitter :width="20" /></a>
-          <a href="javascript:void(0)" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="邮件"><icon-mail :width="20" /></a>
+          <a v-if="site.socials.github" :href="site.socials.github" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="GitHub"><icon-github :width="20" /></a>
+          <a v-if="site.socials.bilibili" :href="site.socials.bilibili" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="Bilibili"><icon-bilibili :width="20" /></a>
+          <a v-if="site.socials.email" :href="'mailto:' + site.socials.email" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="给我写信"><icon-mail :width="20" /></a>
         </div>
       </div>
     </div>
@@ -147,14 +147,16 @@
           <span class="text-sm text-neutral-400">© {{ yearRange }} {{ site.author }} · {{ site.slogan }}</span>
         </div>
         <div class="flex items-center gap-6">
-          <a v-if="site.github" :href="site.github" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="GitHub">
+          <a v-if="site.socials.github" :href="site.socials.github" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="GitHub">
             <icon-github :width="14" />
           </a>
-          <a v-if="site.twitter" :href="site.twitter" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="Twitter">
-            <icon-twitter :width="14" />
+          <a v-if="site.socials.bilibili" :href="site.socials.bilibili" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="Bilibili">
+            <icon-bilibili :width="14" />
           </a>
-          <a href="javascript:void(0)" class="text-xs text-neutral-400 hover:text-neutral-900 transition-colors">RSS</a>
-          <a href="javascript:void(0)" class="text-xs text-neutral-400 hover:text-neutral-900 transition-colors">Sitemap</a>
+          <a v-if="site.socials.email" :href="'mailto:' + site.socials.email" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="给我写信">
+            <icon-mail :width="14" />
+          </a>
+          <a :href="feedUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="RSS 订阅">RSS</a>
         </div>
       </div>
     </footer>
@@ -174,7 +176,7 @@
 <script>
 import { SITE } from '@/config/site'
 import { getStoredUser, isManager, logout } from '@/utils/auth'
-import request from '@/utils/request'
+import request, { API_BASE } from '@/utils/request'
 
 export default {
   name: 'FrontLayout',
@@ -199,6 +201,9 @@ export default {
   computed: {
     manager() {
       return isManager(this.currentUser)
+    },
+    feedUrl() {
+      return API_BASE + '/feed.xml'
     },
     yearRange() {
       const now = new Date().getFullYear()

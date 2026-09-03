@@ -1,85 +1,145 @@
 <template>
-  <section class="about-me">
-    <div class="about-content">
-      <p class="intro">
-        你好，我是 <strong>李金诺</strong>。
-      </p>
+  <div class="max-w-3xl mx-auto px-6 py-16 md:py-24 text-neutral-900">
+    <!-- 头像（可选：没设 portrait 就不显示，不会裂图） -->
+    <img
+        v-if="site.portrait"
+        :src="resolveAsset(site.portrait)"
+        alt="作者头像"
+        class="w-20 h-20 rounded-2xl object-cover grayscale hover:grayscale-0 transition-all duration-700 mb-8"
+    >
 
-      <p class="identity">
-        大连理工大学 2024 级本科生，来自计算机科学与技术学院。
+    <!-- 头部 -->
+    <header class="mb-12">
+      <p class="text-xs font-medium uppercase tracking-widest text-neutral-400 mb-4">关于我</p>
+      <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-neutral-900">{{ profile.name }}</h1>
+      <p v-if="profile.identity" class="mt-3 text-neutral-500 font-light">{{ profile.identity }}</p>
+      <p v-if="profile.motto" class="mt-6 text-neutral-400 italic font-light text-[15px]">
+        「{{ profile.motto }}」
       </p>
+    </header>
 
-      <div class="info-block">
-        <p>
-          这个博客是我的 Java 课程设计项目，也是一个准备用来长期维护的个人博客雏形。
-        </p>
-        <p>
-          当前项目围绕文章、分类和后台管理展开，主要使用
-          <strong>Spring Boot</strong>、<strong>MyBatis-Plus</strong>、
-          <strong>MySQL</strong>、<strong>Vue</strong> 和
-          <strong>Element UI</strong> 完成前后端开发。
-        </p>
-        <p>
-          我希望它不只是一次作业，而是一个可以继续记录学习、整理想法、沉淀代码的地方。
-        </p>
+    <!-- 自我介绍正文 -->
+    <section v-if="profile.bio.length" class="space-y-4 text-[15px] md:text-base text-neutral-600 font-light leading-relaxed">
+      <p v-for="(paragraph, i) in profile.bio" :key="'bio-' + i">{{ paragraph }}</p>
+    </section>
+
+    <!-- 技术栈 -->
+    <section v-if="profile.skills.length" class="mt-12">
+      <h2 class="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-5">技术栈</h2>
+      <ul class="space-y-3">
+        <li
+            v-for="(item, i) in profile.skills"
+            :key="'skill-' + i"
+            class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4"
+        >
+          <span class="text-sm font-medium text-neutral-800 sm:w-40 shrink-0">{{ item.label }}</span>
+          <span v-if="item.desc" class="text-sm text-neutral-500 font-light">{{ item.desc }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 兴趣 / 爱好 -->
+    <section v-if="profile.interests.length" class="mt-12">
+      <h2 class="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-5">兴趣与爱好</h2>
+      <div class="flex flex-wrap gap-2">
+        <span
+            v-for="(item, i) in profile.interests"
+            :key="'interest-' + i"
+            class="px-3 py-1.5 rounded-full border border-neutral-200 text-sm text-neutral-600"
+        >{{ item }}</span>
       </div>
+    </section>
 
-      <p class="slogan">少一分浮躁，多一分沉淀。</p>
+    <!-- 喜欢的作品 -->
+    <section v-if="profile.favorites.length" class="mt-12">
+      <h2 class="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-5">喜欢的作品</h2>
+      <ul class="space-y-2.5 text-[15px] text-neutral-600 font-light">
+        <li v-for="(item, i) in profile.favorites" :key="'fav-' + i" class="flex items-baseline gap-3">
+          <span class="text-neutral-300">·</span>
+          <span>{{ item }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 经历 / 时间线 -->
+    <section v-if="profile.journey.length" class="mt-12">
+      <h2 class="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-5">经历</h2>
+      <ol class="border-l border-neutral-200 ml-1.5 space-y-6">
+        <li v-for="(item, i) in profile.journey" :key="'journey-' + i" class="pl-6 relative">
+          <span class="absolute left-0 top-1.5 -translate-x-1/2 w-2 h-2 rounded-full bg-neutral-900"></span>
+          <span v-if="item.period" class="block text-xs font-medium text-neutral-400 uppercase tracking-wider">{{ item.period }}</span>
+          <p class="mt-1 text-sm text-neutral-600 font-light leading-relaxed">{{ item.text }}</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- 找到我 -->
+    <section class="mt-14 pt-10 border-t border-neutral-100">
+      <h2 class="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-5">找到我</h2>
+      <div class="flex flex-wrap items-center gap-3">
+        <a
+            v-if="socials.github"
+            :href="socials.github"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-neutral-200 text-sm text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300"
+        >
+          <icon-github :width="16" /> GitHub
+        </a>
+        <a
+            v-if="socials.bilibili"
+            :href="socials.bilibili"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-neutral-200 text-sm text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300"
+        >
+          <icon-bilibili :width="16" /> Bilibili
+        </a>
+        <a
+            v-if="socials.email"
+            :href="'mailto:' + socials.email"
+            class="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-neutral-200 text-sm text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-all duration-300"
+        >
+          <icon-mail :width="16" /> {{ socials.email }}
+        </a>
+      </div>
+      <p v-if="socials.qq" class="mt-5 text-sm text-neutral-400">QQ：{{ socials.qq }}</p>
+    </section>
+
+    <div class="mt-14">
+      <router-link to="/" class="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors">
+        返回首页
+        <icon-arrow-right :width="14" />
+      </router-link>
     </div>
-  </section>
+  </div>
 </template>
 
+<script>
+import { SITE } from '@/config/site'
+import { resolveAsset } from '@/utils/request'
+
+export default {
+  name: 'AboutMe',
+  data() {
+    return {
+      site: SITE
+    }
+  },
+  computed: {
+    profile() {
+      return this.site.profile
+    },
+    socials() {
+      return this.site.socials
+    }
+  },
+  methods: {
+    resolveAsset
+  }
+}
+</script>
+
 <style scoped>
-.about-me {
-  min-height: calc(100vh - 120px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  color: #1f1e33;
-}
-
-.about-content {
-  max-width: 780px;
-  width: 100%;
-  text-align: center;
-  font-family: "Noto Serif SC", "Songti SC", "SimSun", "Times New Roman", serif;
-}
-
-.intro {
-  margin: 0;
-  font-size: 34px;
-  line-height: 1.45;
-}
-
-.identity {
-  margin: 16px 0 0;
-  font-size: 21px;
-  line-height: 1.8;
-  color: #303133;
-}
-
-.info-block {
-  margin-top: 28px;
-  font-size: 18px;
-  line-height: 2;
-  color: #444b52;
-}
-
-.info-block p {
-  margin: 10px 0;
-}
-
-.slogan {
-  margin: 30px 0 0;
-  font-size: 24px;
-  line-height: 1.7;
-  color: #545c64;
-  font-style: italic;
-}
-
-.intro strong,
-.info-block strong {
-  font-weight: 700;
-}
+/* 极简风格，样式主要走 Tailwind；这里只留少量兜底 */
 </style>
