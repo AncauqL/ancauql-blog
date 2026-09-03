@@ -12,15 +12,15 @@
           <span class="year-count">{{ group.articles.length }} 篇</span>
         </h2>
         <ul class="article-list">
-          <li
+          <router-link
               v-for="item in group.articles"
               :key="item.id"
+              :to="'/post/' + item.id"
               class="archive-item"
-              @click="$router.push('/post/' + item.id)"
           >
             <span class="item-date">{{ formatMonthDay(item.createTime) }}</span>
             <span class="item-title">{{ item.title }}</span>
-          </li>
+          </router-link>
         </ul>
       </div>
 
@@ -34,6 +34,7 @@
 
 <script>
 import request from '@/utils/request'
+import { formatMonthDay } from '@/utils/datetime'
 
 export default {
   name: 'Archive',
@@ -66,14 +67,8 @@ export default {
       })
     },
     formatMonthDay(value) {
-      const pad = v => String(v).padStart(2, '0')
-      if (Array.isArray(value)) {
-        return `${pad(value[1])}-${pad(value[2])}`
-      }
-      if (!value) {
-        return '--'
-      }
-      return String(value).slice(5, 10)
+      const s = formatMonthDay(value)
+      return s || '--'
     }
   }
 }
@@ -138,6 +133,8 @@ export default {
   padding: 9px 4px;
   border-radius: 4px;
   cursor: pointer;
+  color: inherit;
+  text-decoration: none;
   transition: background 0.15s ease, transform 0.15s ease;
 }
 

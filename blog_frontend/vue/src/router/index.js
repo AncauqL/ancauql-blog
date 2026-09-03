@@ -70,6 +70,11 @@ const routes = [
       layout: 'admin'
     }
   },
+  {
+    path: '*',
+    name: 'NotFound',
+    component: () => import('../views/NotFound.vue')
+  },
 ]
 
 const router = new VueRouter({

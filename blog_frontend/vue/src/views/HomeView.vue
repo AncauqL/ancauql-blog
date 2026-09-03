@@ -56,7 +56,7 @@
           >
           <div class="relative z-10 h-full flex flex-col justify-end p-6 md:p-12">
             <div class="flex items-center gap-2 mb-3">
-              <span class="text-[10px] font-semibold uppercase tracking-widest text-white/60 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full">精选</span>
+              <span class="text-[10px] font-semibold uppercase tracking-widest text-white/60 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full">置顶</span>
               <span class="text-[10px] font-medium text-white/40">{{ formatTime(featured.createTime) }}</span>
             </div>
             <h2 class="text-xl md:text-3xl lg:text-4xl font-semibold text-white tracking-tight leading-tight max-w-2xl">
@@ -110,6 +110,7 @@
                     v-if="item.cover"
                     :src="resolveAsset(item.cover)"
                     alt=""
+                    loading="lazy"
                     class="w-full h-full object-cover"
                 >
               </div>
@@ -237,6 +238,7 @@
 <script>
 import request, { resolveAsset, API_BASE } from '@/utils/request'
 import { SITE } from '@/config/site'
+import { formatDate } from '@/utils/datetime'
 
 export default {
   name: 'HomeView',
@@ -370,7 +372,7 @@ export default {
       return category ? category.name : '未分类'
     },
     observeDividers() {
-      // 分割线进入视口时展开；精选文章取列表第一篇（服务端已按时间倒序）
+      // 分割线进入视口时展开；置顶大卡由 watch 在首屏数据到位后决定
       this.observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -387,28 +389,19 @@ export default {
       this.$el.querySelectorAll('.divider-line:not(.visible)').forEach(el => {
         this.observer.observe(el)
       })
-      if (this.articleList.length > 0) {
-        this.featured = this.articleList[0]
-      }
     },
     onPortraitError() {
       this.portraitFailed = true
     },
     formatTime(value) {
-      if (!value) {
-        return '未知日期'
-      }
-      if (Array.isArray(value)) {
-        return `${value[0]}-${String(value[1]).padStart(2, '0')}-${String(value[2]).padStart(2, '0')}`
-      }
-      return String(value).replace('T', ' ').slice(0, 10)
+      return formatDate(value) || '未知日期'
     }
   },
   watch: {
     articleList(list) {
-      // 首页加载后或筛选后，第一篇作为精选大卡
-      if (list && list.length > 0 && this.pageNum === 1) {
-        this.featured = list[0]
+      // 首页首屏（含筛选/翻回第一页）若存在置顶文，取第一篇置顶文作“置顶大卡”；无置顶则不展示
+      if (list && this.pageNum === 1) {
+        this.featured = list.find(a => a.top) || null
       }
     }
   }

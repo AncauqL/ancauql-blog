@@ -63,6 +63,13 @@
         </template>
       </el-table-column>
 
+      <el-table-column label="置顶" width="80" align="center">
+        <template slot-scope="scope">
+          <el-tag v-if="scope.row.top" type="warning" size="small">置顶</el-tag>
+          <span v-else class="muted">—</span>
+        </template>
+      </el-table-column>
+
       <el-table-column prop="viewCount" label="阅读" width="80" />
 
       <el-table-column label="创建时间" width="170">
@@ -71,8 +78,10 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column label="操作" width="250" fixed="right">
         <template slot-scope="scope">
+          <el-button v-if="scope.row.top" type="warning" size="mini" @click="toggleTop(scope.row)">取消置顶</el-button>
+          <el-button v-else type="warning" size="mini" plain @click="toggleTop(scope.row)">置顶</el-button>
           <el-button
               type="primary"
               size="mini"
@@ -105,6 +114,7 @@
 
 <script>
 import request from '@/utils/request'
+import { formatDateTime } from '@/utils/datetime'
 
 export default {
   name: 'Article',
@@ -175,6 +185,18 @@ export default {
         })
       }).catch(() => {})
     },
+    toggleTop(row) {
+      request.post('/article', { id: row.id, top: !row.top }).then(res => {
+        if (res.code === '200') {
+          this.$message.success(row.top ? '已取消置顶' : '已置顶')
+          this.load()
+        } else {
+          this.$message.error(res.msg)
+        }
+      }).catch(() => {
+        this.$message.error('操作失败，请稍后重试')
+      })
+    },
     getCategoryName(categoryId) {
       const category = this.categoryList.find(item => item.id === categoryId)
       return category ? category.name : '未分类'
@@ -189,23 +211,7 @@ export default {
       return '未知'
     },
     formatTime(value) {
-      if (!value) {
-        return '-'
-      }
-
-      if (Array.isArray(value)) {
-        const year = value[0]
-        const month = this.padZero(value[1])
-        const day = this.padZero(value[2])
-        const hour = this.padZero(value[3] || 0)
-        const minute = this.padZero(value[4] || 0)
-        return `${year}-${month}-${day} ${hour}:${minute}`
-      }
-
-      return String(value).replace('T', ' ').slice(0, 16)
-    },
-    padZero(value) {
-      return String(value).padStart(2, '0')
+      return formatDateTime(value) || '-'
     }
   }
 }
@@ -214,6 +220,10 @@ export default {
 <style scoped>
 .article-page {
   padding: 4px;
+}
+
+.muted {
+  color: #909399;
 }
 
 .page-header {

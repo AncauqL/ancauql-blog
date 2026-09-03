@@ -1,7 +1,8 @@
 import axios from 'axios'
 
-// 后端服务地址：markdown 渲染、图片上传回显等都从这里取，改地址只改这一处
-export const API_BASE = 'http://localhost:9999'
+// 后端服务地址：markdown 渲染、图片上传回显等都从这里取。
+// 优先读 .env 里的 VUE_APP_API_BASE（构建时注入），否则回退本机默认。
+export const API_BASE = process.env.VUE_APP_API_BASE || 'http://localhost:9999'
 
 /** 站内上传的图片存相对路径（/uploads/...），展示时统一走这里拼接后端地址 */
 export function resolveAsset(url) {

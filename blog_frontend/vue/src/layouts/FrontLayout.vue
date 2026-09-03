@@ -177,6 +177,7 @@
 import { SITE } from '@/config/site'
 import { getStoredUser, isManager, logout } from '@/utils/auth'
 import request, { API_BASE } from '@/utils/request'
+import { formatDate } from '@/utils/datetime'
 
 export default {
   name: 'FrontLayout',
@@ -336,13 +337,7 @@ export default {
       return category ? category.name : '未分类'
     },
     formatTime(value) {
-      if (!value) {
-        return '未知日期'
-      }
-      if (Array.isArray(value)) {
-        return `${value[0]}-${String(value[1]).padStart(2, '0')}-${String(value[2]).padStart(2, '0')}`
-      }
-      return String(value).replace('T', ' ').slice(0, 10)
+      return formatDate(value) || '未知日期'
     }
   }
 }

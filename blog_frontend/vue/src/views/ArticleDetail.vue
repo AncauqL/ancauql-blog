@@ -30,6 +30,7 @@
         <img
             v-if="article.cover"
             :src="resolveAsset(article.cover)"
+            loading="lazy"
             class="cover-hero"
             alt=""
         >
@@ -99,6 +100,7 @@
 <script>
 import request, { resolveAsset } from '@/utils/request'
 import { renderMarkdown, countWords, readingMinutes } from '@/utils/markdown'
+import { formatDateTime } from '@/utils/datetime'
 
 export default {
   name: 'ArticleDetail',
@@ -304,23 +306,7 @@ export default {
 
     /* ---------- 时间格式化 ---------- */
     formatTime(value) {
-      if (!value) {
-        return '未知日期'
-      }
-
-      if (Array.isArray(value)) {
-        const year = value[0]
-        const month = this.padZero(value[1])
-        const day = this.padZero(value[2])
-        const hour = this.padZero(value[3] || 0)
-        const minute = this.padZero(value[4] || 0)
-        return `${year}-${month}-${day} ${hour}:${minute}`
-      }
-
-      return String(value).replace('T', ' ').slice(0, 16)
-    },
-    padZero(value) {
-      return String(value).padStart(2, '0')
+      return formatDateTime(value) || '未知日期'
     }
   }
 }
