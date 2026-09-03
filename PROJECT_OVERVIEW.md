@@ -85,8 +85,8 @@ AncauqL_blog/
   - 文章网格：三列（移动一列 / 平板两列），`gap-6`，卡片图 `aspect-[4/3]`、hover `scale(1.05)` 0.6s 缓动。
   - 分类筛选条：真实分类 `categoryId` 服务端过滤（选中态黑底白字圆角按钮）。
   - “加载更多”：真分页追加（服务端 selectPage 翻页），到底显示“已加载全部文章”。
-  - 关于我区：左图右文两栏，肖像默认灰度 hover 恢复（0.7s 过渡）。
-  - 订阅区：假订阅表单，内联成功消息 4 秒后消失（按设计稿，不发真请求）。
+  - 关于我区：左图右文两栏，简介文案来自 `site.aboutLines`；未设肖像图时显示站名首字母占位（不裂图）；提供“完整介绍 →”跳转 `/aboutme`，并展示社交入口。
+  - 保持联系区：RSS 订阅（真实 `/feed.xml`）+ 社交关注 + 邮件写信；已移除原先“假订阅”表单（不再采集访客邮箱）。
   - 分割线动画：滚动进入视口时从 0 展开 to 48px。
 - 文章详情页：`/post/:id`
   - 请求 `/article/detail?id=文章ID`。
@@ -101,7 +101,7 @@ AncauqL_blog/
 - 归档页：`/archive`
   - 请求 `/article/archive`，按年份分组展示全部已发布文章（倒序）。
 - 关于我：`/aboutme`
-  - 静态个人介绍页面。
+  - 极简风格详情页，内容全部来自 `config/site.js` 的 `profile`（姓名 / 身份 / motto / bio / skills / interests / favorites / journey）。空版块自动隐藏，往数组里填数据即可扩展；目前占位内容待站主日后补充。
 
 ### 管理侧页面
 
@@ -161,6 +161,7 @@ AncauqL_blog/
 ### 基础接口
 
 - `GET /hello`：返回 `hello world`，可用于快速确认后端是否启动。
+- `GET /feed.xml`：RSS 2.0 订阅源（公开），只收录已发布文章（最多 50 篇，按发布时间倒序），每篇文章的链接按 `blog.site-url` 拼前台地址。
 
 ### 登录接口
 
@@ -219,7 +220,7 @@ AncauqL_blog/
 - `title`：标题。
 - `summary`：摘要。
 - `content`：正文。
-- `cover`：封面图片地址，当前前端还没有实际展示。
+- `cover`：封面图片地址，首页文章卡片、精选大卡与详情页头图均已实际展示（相对路径 `/uploads/...`）。
 - `category_id`：分类 ID。
 - `user_id`：作者 ID。
 - `status`：文章状态，当前使用 `published` / `draft`。
@@ -338,7 +339,8 @@ npm run build
 - 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。
 - 文章正文按 Markdown 渲染，渲染结果经 DOMPurify 消毒；写作时可放心使用标准 Markdown 语法。
 - 正文与封面中的站内图片存**相对路径** `/uploads/...`，前端渲染时拼接 `request.js` 导出的 `API_BASE`；部署换域名只改一处。
-- 站点名 / 作者 / slogan / 备案号在 `src/config/site.js` 修改。
+- 站点信息集中在 `src/config/site.js`：站点名 / slogan / identity / 首页简介 `aboutLines` / 详情页个人资料 `profile` / 肖像 `portrait` / 社交链接 `socials` / 备案号。社交入口与页脚图标均由这份配置驱动，留空的项自动隐藏。
+- RSS 订阅源 `/feed.xml` 的站点标题与前台基址配置在后端 `application.yml` 的 `blog.site-title` / `blog.site-url`（站点地址可用环境变量 `BLOG_SITE_URL` 覆盖）。
 - 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容。
 - 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。

@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-08-31（完成前台换脸 M3-④ + 新设计首页迁移 + 模板补齐后）
+最后更新：2026-09-03（移除 M3-⑤ 安全/部署规划并收尾 M3；完成首批附加功能：站点信息集中化 + AboutMe 详情页 + 真实社交/联系方式 + 去假订阅 + RSS /feed.xml）
 
 ---
 
@@ -56,7 +56,7 @@ AncauqL_blog/
   - 图片上传 `POST /file/upload` → 本地 `./uploads`，`/uploads/**` 静态访问
   - 首页与文章管理均为服务端分页；列表接口不返回 content 大字段
   - 一键启动/停止脚本
-- [ ] **M3 可上线版**：
+- [x] **M3 可上线版**：
   - [x] ④ 前台换脸（2026-08-31 完成）：
     - 布局拆分：`App.vue` 只做切换器，`layouts/FrontLayout.vue`（顶部极简导航+页脚）
       与 `layouts/AdminLayout.vue`（深色侧边栏）按 `$route.meta.layout` 渲染
@@ -67,7 +67,7 @@ AncauqL_blog/
     - 归档页 `/archive` + 新接口 `GET /article/archive`（按年份分组倒序，仅已发布）
     - 路由全部前台化：`/post/:id` 详情、`/archive`、`/aboutme`、`/login` 均无管理布局
     - 移动端 ≤640px 适配（导航收纳、封面缩小）
-  - [ ] ⑤ 安全硬化 + 部署上线
+  - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
 - [ ] **M4 长期增强**：RSS、评论、标签、统计
 
 ## 4. 铁律（违反任何一条都算事故）
@@ -160,6 +160,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 方法+路径 | 权限 | 说明 |
 |---|---|---|
 | GET /hello | 公开 | 健康检查 |
+| GET /feed.xml | 公开 | RSS 2.0 订阅源：仅已发布文章、按 create_time desc（最多 50），文章链接按 `blog.site-url` 拼前台地址；标题用 `blog.site-title` |
 | POST /auth/login | 公开 | `{username,password}` → `{token,user}` |
 | GET /auth/me · POST /auth/logout | 登录 | Token 在内存，后端重启失效 |
 | GET /article/selectAll | 公开* | 游客只见 published；管理员见全部（旧接口，新代码请用 selectPage） |
@@ -215,25 +216,17 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
   两条验证命令全绿；手机宽度（375px）下首页/详情页可正常阅读。
 - **暂不做**：深色模式、Vue3 迁移、评论。
 
-### ⑤ 安全硬化 + 部署上线（下一个大步）
+### ⑤ 内容生态（长期）
 
-- 密码改 BCrypt：只引 `spring-security-crypto`（不要引全家桶），
-  `PasswordUtil` 增加 `BCRYPT:` 前缀分支，兼容存量 `SHA256:` 与明文的登录升级链。
-- Token 落库（新表 auth_token: token/user_id/expire_time）或改 JWT，二选一，解决重启掉登录。
-- `@RestControllerAdvice` 全局异常处理，兜底返回 `Result.error`，不再裸抛 500 白页。
-- CORS 从 `@CrossOrigin("*")` 收敛为配置化白名单（application.yml 列域名）。
-- 登录接口限流（内存计数：同 IP 1 分钟 5 次足够）。
-- Docker Compose：mysql + backend(jar) + nginx（托管前端 dist、`/api` 反代 9999、
-  `/uploads` 反代或直接挂载卷、history fallback 到 index.html）。
-- 前端 `API_BASE` 改为 `process.env.VUE_APP_API_BASE || 'http://localhost:9999'`，
-  生产构建走 `/api`（同域反代，顺便解决 CORS）。
-- 部署目标：站主的腾讯云北京轻量服务器（Ubuntu 24.04，已有 WireGuard，SSH 凭据站主自持）。
-  agent 只准备好 compose 文件与部署文档，**实际上服务器操作由站主执行或明确授权后进行**。
-- **验收**：本地 `docker compose up` 全链路可用；文档含首次部署步骤与数据库备份命令。
+**本批已完成（2026-09-03）**：
+- RSS `/feed.xml` 真实订阅源已做（后端出 XML，`blog.site-title` / `blog.site-url` 可配；前端页脚与首页「保持联系」已接真实地址）。
+- 站点信息集中到 `config/site.js`（identity / aboutLines / socials / portrait / profile），首页简介与 AboutMe 同源不再打架。
+- AboutMe 详情页重做：极简风格，内容读 `site.profile`，空版块自动隐藏，占位文字待站主日后填充。
+- 移除首页「假订阅」表单，改真实可用的「RSS + 社交关注 + 邮件写信」。
+- 页脚 / 移动菜单社交入口按配置真实可用（github/bilibili/email/QQ），原先的死链接移除；Bilibili 为实心品牌图标（`IconBase` 增加 `filled` 支持）。
 
-### ⑥ 内容生态（长期）
-
-- RSS（后端出 /feed.xml）与 sitemap.xml；SEO meta（依赖 SSR 或预渲染，评估后再定）。
+**未做（后续）**：
+- sitemap.xml 与 SEO meta（依赖 SSR / 预渲染，评估后再定）。
 - 标签系统：tag 表 + article_tag 关联表 + 前后台 UI。
 - 评论：先挂 Giscus（GitHub Discussions，零后端）试运行，再决定是否自建。
 - 访问统计：自托管 Umami 或简单 access_log 表。
@@ -242,9 +235,9 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 
 ## 12. 已知问题 / 技术债（接手时先看这里）
 
-- Token 存后端内存，重启即掉线（⑤解决）。
-- 密码是无盐 SHA256（⑤解决）。
-- CORS 全开 `*`（⑤解决）。
+- Token 存后端内存，重启即掉线。
+- 密码是无盐 SHA256。
+- CORS 全开 `*`。
 - `selectAll` / `selectSearch` 旧接口仍返回全文 content，前端已不用于列表，暂留兼容。
 - 编辑器左右分栏无滚动同步（体验项，有空再做）。
 - uploads 目录无孤儿图片清理机制（文章删了图还在，暂不处理）。
@@ -264,3 +257,5 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | bat 脚本 GBK 编码 | 实测 UTF-8 + chcp 65001 在本机 cmd 解析错乱（命令被截断执行） |
 | stop 脚本端口+进程名双匹配 | 实测本机 8080 被无关软件占用，纯按端口杀会误伤 |
 | 新文章 POST 后返回实体 | 编辑器保存新文章后需要 id 才能原地继续编辑 |
+| 移除 M3-⑤「安全硬化 + 部署上线」规划（2026-09-03） | 站主拍板：不按原预设路线执行该大步，改为与站主商量确定要新增的附加/拓展功能；原规划涉及的各项安全/部署事项，此后一律按新的商量结果再定 |
+| 站点信息集中化 + AboutMe 详情页 + 移除首页“假订阅”（2026-09-03） | 首页简介与 AboutMe 文案此前两套不一致；假订阅收集邮箱却不做任何事，属误导。集中到 `config/site.js` 一处维护，AboutMe 空版块自动隐藏待填充，联系区改为真实可用的 RSS + 社交 + 写信 |
