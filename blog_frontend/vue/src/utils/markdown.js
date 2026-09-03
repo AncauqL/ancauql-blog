@@ -1,5 +1,7 @@
 import MarkdownIt from 'markdown-it'
 import DOMPurify from 'dompurify'
+import katex from 'katex'
+import texmath from 'markdown-it-texmath'
 import hljs from 'highlight.js/lib/core'
 import { API_BASE } from '@/utils/request'
 
@@ -21,6 +23,7 @@ import nginx from 'highlight.js/lib/languages/nginx'
 import plaintext from 'highlight.js/lib/languages/plaintext'
 
 import 'highlight.js/styles/github.css'
+import 'katex/dist/katex.min.css'
 import '@/assets/css/markdown.css'
 
 // 只注册博客会用到的语言，控制打包体积
@@ -54,6 +57,13 @@ const md = new MarkdownIt({
   html: true,      // 允许正文里混写 HTML，渲染后统一交给 DOMPurify 消毒
   linkify: true,   // 自动识别裸链接
   breaks: false
+})
+
+// LaTeX 数学：$行内公式$ 与 $$块级公式$$，用 KaTeX 渲染（仅输出 HTML，规避 mathml 标签）
+md.use(texmath, {
+  engine: katex,
+  delimiters: 'dollars',
+  katexOptions: { throwOnError: false, output: 'html' }
 })
 
 // 代码块：带语言标签 + 复制按钮的卡片结构
@@ -107,6 +117,20 @@ md.renderer.rules.image = (tokens, idx, options, env, self) => {
   }
   return defaultImage(tokens, idx, options, env, self)
 }
+
+// KaTeX 生成的 .katex 节点会带内联样式（负责精确排版）。这里只对公式内部
+// 放行 style 属性，其余元素仍由 DOMPurify 按默认规则剥离，避免 XSS 面扩大。
+DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+  if (data.attrName !== 'style') {
+    return
+  }
+  let el = node
+  while (el && el.nodeType === 1 &&
+      !(el.classList && el.classList.contains('katex'))) {
+    el = el.parentNode
+  }
+  data.keepAttr = !!el
+})
 
 /**
  * 把 Markdown 渲染成消毒后的 HTML。

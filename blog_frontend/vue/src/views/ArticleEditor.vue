@@ -87,6 +87,12 @@
       <el-button size="mini" @click="insertBlock('```java\n', '\n```', '// 代码')">代码块</el-button>
       <el-button size="mini" @click="wrapSelection('[', '](https://)', '链接文字')">链接</el-button>
       <el-button size="mini" @click="insertBlock('> ', '', '引用内容')">引用</el-button>
+      <el-button size="mini" @click="wrapSelection('$', '$', '公式')">公式</el-button>
+      <el-button size="mini" @click="insertMathBlock()">公式块</el-button>
+      <el-button size="mini" @click="insertHeading()">标题</el-button>
+      <el-button size="mini" @click="insertList()">列表</el-button>
+      <el-button size="mini" @click="insertStrike()">删除线</el-button>
+      <el-button size="mini" @click="insertTable()">表格</el-button>
       <span class="toolbar-tip">
         支持直接粘贴 / 拖入图片自动上传 · Tab 缩进 · Ctrl+S 保存
       </span>
@@ -443,6 +449,25 @@ export default {
       const needsNewline = start > 0 && value[start - 1] !== '\n'
       this.wrapSelection((needsNewline ? '\n' : '') + before, after, placeholder)
     },
+    insertMathBlock() {
+      this.insertBlock('$$\n', '\n$$', 'a^2 + b^2 = c^2')
+    },
+    insertHeading() {
+      this.insertBlock('## ', '', '二级标题')
+    },
+    insertList() {
+      this.insertBlock('- ', '', '列表项')
+    },
+    insertStrike() {
+      this.wrapSelection('~~', '~~', '文字')
+    },
+    insertTable() {
+      this.insertBlock(
+        '| 列A | 列B | 列C |\n| --- | --- | --- |\n| 示例 | 示例 | 示例 |',
+        '',
+        ''
+      )
+    },
     insertTab() {
       this.insertAtCursor('  ')
     },
@@ -549,6 +574,7 @@ export default {
 
 .editor-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 12px;

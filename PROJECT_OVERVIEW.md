@@ -61,7 +61,7 @@ AncauqL_blog/
 - @fontsource/inter：Inter 字体自托管（前台设计指定字体，国内不走 Google Fonts CDN）。
 - lucide 图标：静态内联 SVG 组件（`src/components/icons/`），不引 iconify 运行时。
 - Axios 1.18.0：前后端请求。
-- markdown-it 15：文章正文 Markdown 渲染。
+- markdown-it 15：文章正文 Markdown 渲染，集成 `markdown-it-texmath` + **KaTeX** 支持 LaTeX 数学（`$…$` 行内 / `$$…$$` 块级），经 DOMPurify 放行公式内联样式消毒。
 - highlight.js 11：代码块语法高亮，按需注册常用语言。
 - DOMPurify 3：渲染后 HTML 消毒，防 XSS。
 - Vue CLI 5：本地开发、构建、Babel 编译。
@@ -118,7 +118,7 @@ AncauqL_blog/
   - 新增 / 编辑跳转到全屏编辑器页，删除带确认。
 - 文章编辑器：`/article/edit/:id?`
   - 左右分栏：左侧 Markdown 输入，右侧实时预览（与详情页同一套渲染管线）。
-  - 工具栏：插入图片、加粗、行内代码、代码块、链接、引用。
+  - 工具栏：插入图片、加粗、行内代码、代码块、链接、引用，以及 公式（LaTeX）、公式块、标题、列表、删除线、表格。
   - 图片上传：按钮选择、粘贴、拖拽三种方式，自动上传后插入 Markdown。
   - 封面上传与预览。
   - 本地草稿：自动保存到 localStorage，意外关闭后可恢复；离开页面有未保存确认。
