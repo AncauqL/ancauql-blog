@@ -21,6 +21,7 @@
           <el-radio-button label="draft">草稿</el-radio-button>
           <el-radio-button label="published">发布</el-radio-button>
         </el-radio-group>
+        <el-checkbox v-model="form.top" style="margin-left:12px">置顶</el-checkbox>
         <el-button size="small" :loading="saving" @click="save(false)">
           保存
         </el-button>
@@ -212,6 +213,7 @@ export default {
         categoryId: null,
         userId: 1,
         status: 'draft',
+        top: false,
         viewCount: 0
       }
     },
