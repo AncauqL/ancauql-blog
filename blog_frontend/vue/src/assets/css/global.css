@@ -25,6 +25,12 @@ html {
     scroll-behavior: smooth;
 }
 
+/* 前台阅读缩放：只放大访客端（FrontLayout 根容器），后台 AdminLayout 不受影响。
+   把整体放大到接近“浏览器 110% 缩放”的观感；想微调就改 1.1（如 1.05 / 1.15 / 1.2）。 */
+.front-layout {
+    zoom: 1.1;
+}
+
 /* preflight 关闭导致 <button> 残留浏览器默认灰底/边框，这里清掉；
    需要实底或边框的按钮用 Tailwind 类（类优先级更高，会自动覆盖）。 */
 button {

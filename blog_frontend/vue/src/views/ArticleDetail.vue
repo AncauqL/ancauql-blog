@@ -331,6 +331,8 @@ export default {
   min-height: calc(100vh - 120px);
   padding: 28px 20px 64px;
   color: #1f1e33;
+  /* 文章阅读区在前台 1.1 基础上再放大 1.1（净约 1.21 倍），正文更好读 */
+  zoom: 1.1;
 }
 
 .detail-layout {
