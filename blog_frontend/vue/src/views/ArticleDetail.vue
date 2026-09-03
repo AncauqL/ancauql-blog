@@ -69,9 +69,12 @@
         </nav>
       </article>
 
-      <aside v-if="tocItems.length >= 2" class="toc">
+      <aside v-if="tocOpen && tocItems.length >= 2" class="toc">
         <div class="toc-inner">
-          <div class="toc-title">目录</div>
+          <div class="toc-head">
+            <span class="toc-title">目录</span>
+            <button type="button" class="toc-hide-btn" @click="tocOpen = false">收起</button>
+          </div>
           <ul>
             <li
                 v-for="item in tocItems"
@@ -89,6 +92,16 @@
         </div>
       </aside>
     </div>
+
+    <button
+        v-if="hasToc"
+        type="button"
+        class="toc-toggle"
+        :title="tocOpen ? '收起目录' : '展开目录'"
+        @click="tocOpen = !tocOpen"
+    >
+      {{ tocOpen ? '收起目录' : '目录' }}
+    </button>
 
     <el-empty
         v-else-if="loaded"
@@ -116,7 +129,8 @@ export default {
       },
       tocItems: [],
       activeHeading: '',
-      observer: null
+      observer: null,
+      tocOpen: false
     }
   },
   computed: {
@@ -136,6 +150,9 @@ export default {
       const category = this.categoryList.find(
           item => item.id === this.article.categoryId)
       return category ? category.name : ''
+    },
+    hasToc() {
+      return this.tocItems.length >= 2
     }
   },
   watch: {
@@ -321,6 +338,51 @@ export default {
   zoom: 1.1;
 }
 
+/* 目录可收起：右侧浮动开关（宽屏才显示） */
+.toc-toggle {
+  position: fixed;
+  top: 84px;
+  right: 16px;
+  z-index: 30;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #4b5563;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.toc-toggle:hover {
+  color: #1f1e33;
+  border-color: #1f1e33;
+}
+
+/* 目录头部行（标题 + 收起按钮） */
+.toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.toc-head .toc-title {
+  margin-bottom: 0;
+}
+.toc-hide-btn {
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  color: #a0a3a8;
+  font-size: 12px;
+  cursor: pointer;
+}
+.toc-hide-btn:hover {
+  color: #1f1e33;
+}
+
 .detail-layout {
   display: flex;
   justify-content: center;
@@ -444,6 +506,9 @@ export default {
 
 @media (max-width: 1100px) {
   .toc {
+    display: none;
+  }
+  .toc-toggle {
     display: none;
   }
 }
