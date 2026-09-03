@@ -188,6 +188,8 @@ public class ArticleServiceImpl implements IArticleService {
         wrapper.like(!"".equals(articleTitle) && articleTitle != null,
                 Article::getTitle, articleTitle);
         wrapper.eq(categoryId != null, Article::getCategoryId, categoryId);
+        // 置顶优先，再按创建时间倒序（同时间按 id 倒序兜底）
+        wrapper.orderByDesc(Article::getTop);
         wrapper.orderByDesc(Article::getCreateTime);
         wrapper.orderByDesc(Article::getId);
         return wrapper;

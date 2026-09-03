@@ -1,6 +1,7 @@
 package com.example.blog_backend.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -25,6 +26,10 @@ public class Article {
     private Integer userId;
 
     private String status;
+
+    /** 是否置顶（1=置顶，列表/首页置顶大卡优先展示） */
+    @TableField("is_top")
+    private Boolean top;
 
     private Integer viewCount;
 
@@ -94,6 +99,14 @@ public class Article {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Boolean getTop() {
+        return top;
+    }
+
+    public void setTop(Boolean top) {
+        this.top = top;
     }
 
     public Integer getViewCount() {
