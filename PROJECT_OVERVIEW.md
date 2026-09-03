@@ -81,7 +81,7 @@ AncauqL_blog/
 
 - 首页：`/`
   - Hero 区：大标题（“思考，记录，然后遗忘。”，末段刻意用 `text-neutral-300` 灰色）+ 描述 + 双 CTA 按钮 + 三组统计数字（文章数 / 总阅读来自 `/article/stats`，写作年数按建站年份计算）。
-  - 精选文章大卡：最新一篇已发布文章，全宽深色背景（有封面时图 `opacity-50`，hover 降到 0.40）。
+  - “置顶”大卡：后台把文章“置顶”后，首页顶部出现深色大卡展示该文（多篇置顶时取最新一篇；无置顶则不显示）。
   - 文章网格：三列（移动一列 / 平板两列），`gap-6`，卡片图 `aspect-[4/3]`、hover `scale(1.05)` 0.6s 缓动。
   - 分类筛选条：真实分类 `categoryId` 服务端过滤（选中态黑底白字圆角按钮）。
   - “加载更多”：真分页追加（服务端 selectPage 翻页），到底显示“已加载全部文章”。
@@ -102,6 +102,7 @@ AncauqL_blog/
   - 请求 `/article/archive`，按年份分组展示全部已发布文章（倒序）。
 - 关于我：`/aboutme`
   - 极简风格详情页，内容全部来自 `config/site.js` 的 `profile`（姓名 / 身份 / motto / bio / skills / interests / favorites / journey）。空版块自动隐藏，往数组里填数据即可扩展；目前占位内容待站主日后补充。
+- 404 页：访问不存在的路径显示简洁 404（`/` 兜底路由，不再白屏）。
 
 ### 管理侧页面
 
@@ -224,6 +225,7 @@ AncauqL_blog/
 - `category_id`：分类 ID。
 - `user_id`：作者 ID。
 - `status`：文章状态，当前使用 `published` / `draft`。
+- `is_top`：是否置顶（1=置顶；列表与首页“置顶”大卡优先），后台文章管理可一键置顶/取消。
 - `view_count`：阅读数，游客打开已发布文章详情时自动递增（数据库端原子自增）。
 - `create_time` / `update_time`：创建与更新时间。
 
@@ -334,7 +336,7 @@ npm run build
 ## 开发与迭代提示
 
 - 后端跨域当前使用 `@CrossOrigin(origins = "*")`，开发方便，但上线前建议改成明确域名。
-- 前端请求地址目前硬编码为 `http://localhost:9999`，后续建议改为 `.env` 配置。
+- 前端访问后端的基址走 `process.env.VUE_APP_API_BASE`（见 `blog_frontend/vue/.env.example`），未配置时回退 `http://localhost:9999`；换域名/部署只需改 `.env`，不再改源码。
 - 前端路由使用 `history` 模式，部署到 Nginx 或其他静态服务器时，需要配置 fallback 到 `index.html`。
 - 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。
 - 文章正文按 Markdown 渲染，渲染结果经 DOMPurify 消毒；写作时可放心使用标准 Markdown 语法。

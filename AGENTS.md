@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-03（移除 M3-⑤ 安全/部署规划并收尾 M3；完成首批附加功能：站点信息集中化 + AboutMe 详情页 + 真实社交/联系方式 + 去假订阅 + RSS /feed.xml）
+最后更新：2026-09-03（移除 M3-⑤ 安全/部署规划；站点信息集中 + AboutMe 详情页 + 真实社交/联系方式 + 去假订阅 + RSS /feed.xml；第二批：文章置顶 is_top→首页置顶大卡、优雅 404、图片懒加载、时间解析收敛 utils/datetime.js、归档条目改链接、API_BASE 走 .env、前台阅读缩放）
 
 ---
 
@@ -69,6 +69,7 @@ AncauqL_blog/
     - 移动端 ≤640px 适配（导航收纳、封面缩小）
   - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
 - [ ] **M4 长期增强**：RSS、评论、标签、统计
+- 体验/工程细节（2026-09-03 完成）：文章可后台“置顶”(is_top)→首页“置顶”大卡；优雅 404 页；文章图片懒加载；时间解析统一到 `utils/datetime.js`；归档条目改 `<router-link>`；`API_BASE` 走 `.env`(VUE_APP_API_BASE，见 .env.example)；前台阅读缩放(1.1，正文详情页再 1.1)
 
 ## 4. 铁律（违反任何一条都算事故）
 
@@ -178,7 +179,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 ## 9. 数据表速览（database/blog_system.sql）
 
 - `article`: id, title, summary(500), content(longtext), cover(500), category_id, user_id,
-  status('published'默认), view_count, create_time, update_time(自动更新)
+  status('published'默认), is_top(是否置顶,1=置顶), view_count, create_time, update_time(自动更新)
 - `category`: id, name, description, sort, create_time
 - `user`: id, username(唯一索引), password(`SHA256:`前缀哈希，明文旧数据首次登录自动升级),
   nickname, role, email, create_time
