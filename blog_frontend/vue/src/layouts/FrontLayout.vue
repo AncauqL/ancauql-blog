@@ -32,12 +32,14 @@
               @click="doLogout"
             >退出</a>
           </template>
-          <a
-            v-else
-            href="javascript:void(0)"
-            class="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
-            @click="goLogin"
-          >登录</a>
+          <template v-else>
+            <router-link to="/register" class="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200">注册</router-link>
+            <a
+                href="javascript:void(0)"
+                class="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
+                @click="goLogin"
+            >登录</a>
+          </template>
         </div>
 
         <!-- 移动端按钮 -->
@@ -77,12 +79,18 @@
             @click="doLogout"
           >退出</a>
         </template>
-        <a
-          v-else
-          href="javascript:void(0)"
-          class="text-2xl font-semibold tracking-tight hover:text-neutral-500 transition-colors"
-          @click="goLogin"
-        >登录</a>
+        <template v-else>
+          <router-link
+              to="/register"
+              @click.native="closeMobileMenu"
+              class="text-2xl font-semibold tracking-tight hover:text-neutral-500 transition-colors"
+          >注册</router-link>
+          <a
+              href="javascript:void(0)"
+              class="text-2xl font-semibold tracking-tight hover:text-neutral-500 transition-colors"
+              @click="goLogin"
+          >登录</a>
+        </template>
         <div class="divider-line visible h-px bg-neutral-200 my-2" style="width:48px"></div>
         <div class="flex gap-4 pt-2">
           <a v-if="site.socials.github" :href="site.socials.github" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-neutral-900 transition-colors" aria-label="GitHub"><icon-github :width="20" /></a>

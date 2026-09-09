@@ -60,7 +60,7 @@
           <span v-else class="post-nav-placeholder"></span>
         </nav>
 
-        <!-- ======== 评论区（即发即显） ======== -->
+        <!-- ======== 评论区（登录后可评论） ======== -->
         <section class="comments">
           <h2 class="comments-title">
             评论
@@ -72,14 +72,27 @@
               <div class="comment-head">
                 <span class="comment-name">{{ c.nickname }}</span>
                 <span class="comment-time">{{ formatTime(c.createTime) }}</span>
+                <button
+                    v-if="canDelete(c)"
+                    type="button"
+                    class="comment-del"
+                    @click="removeComment(c.id)"
+                >删除</button>
               </div>
               <div class="comment-text">{{ c.content }}</div>
             </div>
           </div>
           <p v-else class="comments-empty">还没有评论，来抢个沙发～</p>
 
-          <form class="comment-form" @submit.prevent="submitComment">
-            <!-- 蜜罐：视觉隐藏，只有灌水机器人会填；人工填了后端也静默丢弃 -->
+          <!-- 未登录：提示登录 -->
+          <div v-if="!currentUser" class="comment-login-tip">
+            登录后可发表评论
+            <a class="comment-login-link" @click="goLogin">去登录</a>
+          </div>
+
+          <!-- 已登录：直接发表（昵称取账号） -->
+          <form v-else class="comment-form" @submit.prevent="submitComment">
+            <!-- 蜜罐：视觉隐藏，只有灌水机器人会填 -->
             <input
                 v-model="commentWebsite"
                 type="text"
@@ -88,14 +101,7 @@
                 tabindex="-1"
                 autocomplete="off"
             >
-            <input
-                v-model="commentName"
-                type="text"
-                class="comment-name-input"
-                placeholder="你的昵称（必填）"
-                maxlength="40"
-                required
-            >
+            <div class="comment-as">以「{{ displayName }}」评论</div>
             <textarea
                 v-model="commentText"
                 class="comment-textarea"
@@ -161,6 +167,7 @@
 import request from '@/utils/request'
 import { renderMarkdown, countWords, readingMinutes } from '@/utils/markdown'
 import { formatDateTime } from '@/utils/datetime'
+import { getStoredUser } from '@/utils/auth'
 
 export default {
   name: 'ArticleDetail',
@@ -179,7 +186,7 @@ export default {
       observer: null,
       tocOpen: false,
       comments: [],
-      commentName: '',
+      currentUser: getStoredUser(),
       commentText: '',
       commentWebsite: '',
       submitting: false
@@ -194,6 +201,13 @@ export default {
     },
     minutes() {
       return this.article ? readingMinutes(this.article.content) : 0
+    },
+    displayName() {
+      const u = this.currentUser
+      if (!u) {
+        return ''
+      }
+      return (u.nickname && u.nickname.trim()) ? u.nickname : u.username
     },
     categoryName() {
       if (!this.article || !this.article.categoryId) {
@@ -289,15 +303,13 @@ export default {
       }).catch(() => {})
     },
     submitComment() {
-      const name = this.commentName.trim()
       const text = this.commentText.trim()
-      if (!name || !text) {
+      if (!text) {
         return
       }
       this.submitting = true
       request.post('/comment', {
         articleId: this.article.id,
-        nickname: name,
         content: text,
         website: this.commentWebsite
       }).then(res => {
@@ -313,6 +325,35 @@ export default {
         this.$message.error('网络错误，请稍后再试')
       }).finally(() => {
         this.submitting = false
+      })
+    },
+    canDelete(c) {
+      const u = this.currentUser
+      if (!u) {
+        return false
+      }
+      if (u.role === 'SUPER_ADMIN' || u.role === 'ADMIN') {
+        return true
+      }
+      return !!c.userId && Number(c.userId) === Number(u.id)
+    },
+    removeComment(id) {
+      this.$confirm('确定删除这条评论吗？', '提示', { type: 'warning' })
+        .then(() => {
+          request.delete('/comment/delete?id=' + id).then(res => {
+            if (res.code === '200') {
+              this.$message.success('已删除')
+              this.loadComments(this.article.id)
+            } else {
+              this.$message.error(res.msg || '删除失败')
+            }
+          })
+        }).catch(() => {})
+    },
+    goLogin() {
+      this.$router.push({
+        path: '/login',
+        query: { redirect: this.$route.fullPath }
       })
     },
 
@@ -711,6 +752,42 @@ export default {
 .comment-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.comment-as {
+  font-size: 12px;
+  color: #909399;
+}
+
+.comment-del {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #c0c4cc;
+  font-size: 12px;
+  cursor: pointer;
+}
+.comment-del:hover {
+  color: #f56c6c;
+}
+
+.comment-login-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 6px;
+  color: #606266;
+  font-size: 14px;
+}
+.comment-login-link {
+  color: #409eff;
+  cursor: pointer;
+  text-decoration: none;
+}
+.comment-login-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 1100px) {
