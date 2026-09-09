@@ -113,6 +113,25 @@ LOCK TABLES `user` WRITE;
 INSERT INTO `user` VALUES (1,'admin','123456','站长','SUPER_ADMIN','admin@example.com','2026-06-19 22:08:08');
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `comment`（自建轻量评论，即发即显）
+--
+
+DROP TABLE IF EXISTS `comment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `comment` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '评论ID',
+  `article_id` int NOT NULL COMMENT '文章ID',
+  `nickname` varchar(40) NOT NULL COMMENT '昵称',
+  `content` varchar(2000) NOT NULL COMMENT '评论内容',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_article` (`article_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

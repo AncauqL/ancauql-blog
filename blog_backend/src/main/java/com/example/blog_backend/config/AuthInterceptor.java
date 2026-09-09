@@ -87,6 +87,16 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 评论：读某文章评论 / 发表（GET /comment、POST /comment）保持公开；
+        // 管理端列表与删除仅管理员
+        if (path.startsWith("/comment")) {
+            if ("DELETE".equalsIgnoreCase(method)
+                    || "/comment/list".equals(path)) {
+                return true;
+            }
+            return false;
+        }
+
         if (path.startsWith("/article")) {
             return !"GET".equalsIgnoreCase(method);
         }
