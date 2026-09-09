@@ -1,13 +1,5 @@
 <template>
   <div class="max-w-3xl mx-auto px-6 py-16 md:py-24 text-neutral-900">
-    <!-- 头像（可选：没设 portrait 就不显示，不会裂图） -->
-    <img
-        v-if="site.portrait"
-        :src="resolveAsset(site.portrait)"
-        alt="作者头像"
-        class="w-20 h-20 rounded-2xl object-cover grayscale hover:grayscale-0 transition-all duration-700 mb-8"
-    >
-
     <!-- 头部 -->
     <header class="mb-12">
       <p class="text-xs font-medium uppercase tracking-widest text-neutral-400 mb-4">关于我</p>
@@ -117,7 +109,6 @@
 
 <script>
 import { SITE } from '@/config/site'
-import { resolveAsset } from '@/utils/request'
 
 export default {
   name: 'AboutMe',
@@ -133,9 +124,6 @@ export default {
     socials() {
       return this.site.socials
     }
-  },
-  methods: {
-    resolveAsset
   }
 }
 </script>
