@@ -27,14 +27,6 @@
           </el-tag>
         </div>
 
-        <img
-            v-if="article.cover"
-            :src="resolveAsset(article.cover)"
-            loading="lazy"
-            class="cover-hero"
-            alt=""
-        >
-
         <p v-if="article.summary" class="summary">
           {{ article.summary }}
         </p>
@@ -166,7 +158,7 @@
 </template>
 
 <script>
-import request, { resolveAsset } from '@/utils/request'
+import request from '@/utils/request'
 import { renderMarkdown, countWords, readingMinutes } from '@/utils/markdown'
 import { formatDateTime } from '@/utils/datetime'
 
@@ -230,7 +222,6 @@ export default {
     this.disconnectObserver()
   },
   methods: {
-    resolveAsset,
     reset() {
       this.disconnectObserver()
       this.article = null
