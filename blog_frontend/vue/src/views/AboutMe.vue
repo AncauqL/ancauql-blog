@@ -10,10 +10,12 @@
       </p>
     </header>
 
-    <!-- 自我介绍正文 -->
-    <section v-if="profile.bio.length" class="space-y-4 text-[15px] md:text-base text-neutral-600 font-light leading-relaxed">
-      <p v-for="(paragraph, i) in profile.bio" :key="'bio-' + i">{{ paragraph }}</p>
-    </section>
+    <!-- 自我介绍正文（支持 Markdown，走 markdown.js 统一消毒渲染） -->
+    <section
+        v-if="bioHtml"
+        class="about-bio markdown-body"
+        v-html="bioHtml"
+    ></section>
 
     <!-- 技术栈 -->
     <section v-if="profile.skills.length" class="mt-12">
@@ -109,6 +111,7 @@
 
 <script>
 import { SITE } from '@/config/site'
+import { renderMarkdown } from '@/utils/markdown'
 
 export default {
   name: 'AboutMe',
@@ -123,6 +126,14 @@ export default {
     },
     socials() {
       return this.site.socials
+    },
+    bioHtml() {
+      const bio = this.profile && this.profile.bio
+      if (!bio || !bio.length) {
+        return ''
+      }
+      // 各段落以空行连接成一篇 Markdown 渲染（可含加粗/链接/列表/公式等）
+      return renderMarkdown(bio.join('\n\n'))
     }
   }
 }
