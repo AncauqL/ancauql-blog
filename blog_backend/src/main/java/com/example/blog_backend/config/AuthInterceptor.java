@@ -114,6 +114,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // AboutMe：公开读，写操作需管理员
+        if (path.startsWith("/about")
+                && !"GET".equalsIgnoreCase(method)) {
+            return true;
+        }
+
         if (path.startsWith("/article")) {
             return !"GET".equalsIgnoreCase(method);
         }
