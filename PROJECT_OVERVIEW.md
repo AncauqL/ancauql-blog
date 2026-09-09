@@ -176,6 +176,8 @@ AncauqL_blog/
 
 - `POST /auth/login`：登录，参数为 `username`、`password`（管理员用账号、普通用户用注册邮箱）。
 - `POST /auth/register`：注册普通用户（USER），参数 `email/nickname/password`（+蜜罐 `website`），成功即登录；邮箱即账号名。
+- `POST /auth/profile`：当前登录用户自助更新资料（任意角色），参数 `email/currentPassword/newPassword`；须验当前密码，新邮箱全站唯一。
+- `POST /auth/login` 兼容用邮箱登录：账号名（如 admin）或邮箱均可。
 - `GET /auth/me`：获取当前登录用户。
 - `POST /auth/logout`：退出登录。
 

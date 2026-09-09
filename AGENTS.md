@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/去假订阅/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论；本批：开放普通用户体系——角色 USER、/auth/register 邮箱注册、评论改为登录后可发且绑定账号(user_id)、USER 无后台权限、登录/注册防越权修复）
+最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/去假订阅/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、普通用户体系 USER；本批：admin/账号——登录支持邮箱或用户名、`/auth/profile` 自助绑邮箱/改密码(验当前密码、邮箱唯一)、后台新增“账号设置”页）
 
 ---
 
@@ -167,6 +167,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | POST /auth/login | 公开 | `{username,password}` → `{token,user}`；管理员用账号、普通用户用注册邮箱(=username) |
 | POST /auth/register | 公开 | 注册普通用户(USER)：email/nickname/password + 蜜罐 website + IP 限流；成功即登录 |
 | GET /auth/me · POST /auth/logout | 任意登录 | 仅需登录(USER 亦可)；Token 在内存，重启失效 |
+| POST /auth/profile | 任意登录 | 自助绑/改邮箱、改密码：`email`+`currentPassword`+`newPassword?`；验当前密码，邮箱全站唯一 |
 | GET /article/selectAll | 公开* | 游客只见 published；管理员见全部（旧接口，新代码请用 selectPage） |
 | GET /article/selectPage | 公开* | 参数全可选：pageNum=1, pageSize=10, articleTitle, status（status 仅管理员生效，游客恒 published）；按 create_time desc, id desc；不含 content |
 | GET /article/detail?id= | 公开* | 草稿仅管理员可见(403)；游客访问已发布文章时 view_count 原子 +1，管理员预览不计数 |
