@@ -6,10 +6,10 @@
 export const SITE = {
   name: 'AncauqL',
   author: 'AncauqL',
-  slogan: '思考，记录，然后遗忘。',
+  slogan: '这一副皮囊，借来走一走人间。',
   // 首页 Hero 大标题（两行；第二行渲染成灰色弱化，可分别改文字）
-  heroTitleLine1: '思考，记录，',
-  heroTitleLine2: '然后遗忘。',
+  heroTitleLine1: '这一副皮囊，',
+  heroTitleLine2: '借来走一走人间。',
   // 首页 Hero 描述
   heroText: '这里是我存放想法的地方。关于设计、技术、生活，以及一切值得被文字捕捉的瞬间。',
 
@@ -20,7 +20,8 @@ export const SITE = {
   aboutLines: [
     '你好，我是 AncauqL，一个对设计和代码都有执念的人。',
     '这个博客是我思考的副产品——记录学习、记录生活、记录那些值得留下的瞬间。',
-    '少一分浮躁，多一分沉淀。'
+    '少一分浮躁，多一分沉淀。',
+    '图源网络，侵权请联系我删除！'
   ],
 
   /**
@@ -47,7 +48,7 @@ export const SITE = {
   },
 
   // 肖像图（相对路径走 resolveAsset；空则用站名首字母占位，不会裂图）
-  portrait: '',
+  portrait: '/images/AboutMe.jpg',
 
   // 社交 / 联系方式（留空自动隐藏对应图标）
   socials: {
