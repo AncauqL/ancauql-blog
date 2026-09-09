@@ -86,6 +86,16 @@ const routes = [
     }
   },
   {
+    path: '/settings',
+    name: 'AccountSettings',
+    component: () => import('../views/AccountSettings.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
+    }
+  },
+  {
     path: '*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue')
