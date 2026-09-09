@@ -35,8 +35,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // /auth/me、/auth/logout：任意已登录用户即可（USER 也能查自己/登出）
-        if (path.equals("/auth/me") || path.equals("/auth/logout")) {
+        // /auth/me、/auth/logout、/auth/profile：任意已登录用户即可
+        if (path.equals("/auth/me") || path.equals("/auth/logout")
+                || path.equals("/auth/profile")) {
             if (!AuthContext.isLoggedIn()) {
                 writeResult(response, Result.unauthorized());
                 AuthContext.clear();

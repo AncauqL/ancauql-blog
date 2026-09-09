@@ -4,6 +4,7 @@ import com.example.blog_backend.common.AuthContext;
 import com.example.blog_backend.common.Result;
 import com.example.blog_backend.dto.LoginRequest;
 import com.example.blog_backend.dto.LoginResponse;
+import com.example.blog_backend.dto.ProfileUpdateRequest;
 import com.example.blog_backend.dto.RegisterRequest;
 import com.example.blog_backend.dto.UserProfile;
 import com.example.blog_backend.entity.User;
@@ -54,6 +55,23 @@ public class AuthController {
             UserProfile profile = UserProfile.from(user);
             String token = authTokenService.createToken(profile);
             return Result.success(new LoginResponse(token, profile));
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    // 当前登录用户：绑定/更换邮箱、修改密码（需验当前密码）
+    @PostMapping("/profile")
+    public Result updateProfile(@RequestBody ProfileUpdateRequest body) {
+        UserProfile self = AuthContext.getUser();
+        if (self == null || self.getId() == null) {
+            return Result.unauthorized();
+        }
+        try {
+            User updated = userService.updateSelf(self.getId(),
+                    body.getEmail(), body.getCurrentPassword(),
+                    body.getNewPassword());
+            return Result.success(UserProfile.from(updated));
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         }

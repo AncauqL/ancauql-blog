@@ -42,6 +42,15 @@ public class UserServiceImpl implements IUserService {
         return userMapper.selectOne(wrapper);
     }
 
+    private User selectByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return null;
+        }
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getEmail, email.trim());
+        return userMapper.selectOne(wrapper);
+    }
+
     @Override
     public List<User> selectSearch(String username) {
         LambdaQueryWrapper<User> wrapper = new
@@ -105,8 +114,12 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public User login(String username, String password) {
-        User user = selectByUsername(username);
+    public User login(String identifier, String password) {
+        User user = selectByUsername(identifier);
+        if (user == null) {
+            // 兼容“用邮箱登录”（如 admin 绑定邮箱后可用邮箱登录）
+            user = selectByEmail(identifier);
+        }
         if (user == null || !PasswordUtil.matches(password,
                 user.getPassword())) {
             return null;
@@ -148,6 +161,61 @@ public class UserServiceImpl implements IUserService {
         userMapper.insert(user);
         hidePassword(user);
         return user;
+    }
+
+    @Override
+    public User updateSelf(Integer id, String email, String currentPassword,
+                          String newPassword) {
+        User old = userMapper.selectById(id);
+        if (old == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
+        if (currentPassword == null
+                || !PasswordUtil.matches(currentPassword, old.getPassword())) {
+            throw new IllegalArgumentException("当前密码不正确");
+        }
+
+        boolean changed = false;
+        String newEmail = email == null ? null : email.trim();
+        if (newEmail != null && !newEmail.isEmpty()) {
+            String currentEmail = old.getEmail() == null
+                    ? "" : old.getEmail().trim();
+            if (!newEmail.equalsIgnoreCase(currentEmail)) {
+                if (isEmailTakenByOther(newEmail, id)) {
+                    throw new IllegalArgumentException("该邮箱已被使用");
+                }
+                old.setEmail(newEmail);
+                changed = true;
+            }
+        }
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            if (newPassword.length() < 8) {
+                throw new IllegalArgumentException("新密码至少 8 位");
+            }
+            old.setPassword(PasswordUtil.encode(newPassword));
+            changed = true;
+        }
+        if (!changed) {
+            throw new IllegalArgumentException("没有需要修改的内容");
+        }
+
+        userMapper.updateById(old);
+        hidePassword(old);
+        return old;
+    }
+
+    private boolean isEmailTakenByOther(String email, Integer selfId) {
+        LambdaQueryWrapper<User> byUsername = new LambdaQueryWrapper<>();
+        byUsername.eq(User::getUsername, email);
+        Long u = userMapper.selectCount(byUsername);
+        if (u != null && u > 0) {
+            return true;
+        }
+        LambdaQueryWrapper<User> byEmail = new LambdaQueryWrapper<>();
+        byEmail.eq(User::getEmail, email);
+        byEmail.ne(User::getId, selfId);
+        Long e = userMapper.selectCount(byEmail);
+        return e != null && e > 0;
     }
 
     private void validateUser(User user, boolean requirePassword) {
