@@ -7,6 +7,9 @@ export const SITE = {
   name: 'AncauqL',
   author: 'AncauqL',
   slogan: '思考，记录，然后遗忘。',
+  // 首页 Hero 大标题（两行；第二行渲染成灰色弱化，可分别改文字）
+  heroTitleLine1: '思考，记录，',
+  heroTitleLine2: '然后遗忘。',
   // 首页 Hero 描述
   heroText: '这里是我存放想法的地方。关于设计、技术、生活，以及一切值得被文字捕捉的瞬间。',
 

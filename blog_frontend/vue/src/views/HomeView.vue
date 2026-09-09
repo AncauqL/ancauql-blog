@@ -9,8 +9,8 @@
             <span class="text-xs font-medium uppercase tracking-widest text-neutral-400">个人博客</span>
           </div>
           <h1 class="animate-in delay-100 text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] text-neutral-900">
-            思考，记录，<br>
-            <span class="text-neutral-300">然后遗忘。</span>
+            {{ site.heroTitleLine1 }}<br>
+            <span class="text-neutral-300">{{ site.heroTitleLine2 }}</span>
           </h1>
           <p class="animate-in delay-200 mt-6 md:mt-8 text-base md:text-lg font-light leading-relaxed text-neutral-500 max-w-xl">
             {{ site.heroText }}
