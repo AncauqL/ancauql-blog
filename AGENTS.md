@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/去假订阅/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、普通用户体系 USER；本批：admin/账号——登录支持邮箱或用户名、`/auth/profile` 自助绑邮箱/改密码(验当前密码、邮箱唯一)、后台新增“账号设置”页）
+最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、普通用户体系 USER、admin 邮箱登录与账号设置；本批：AboutMe 后台可编辑——`about_me` 表存正文 Markdown，公开 `GET /about`、管理员 `PUT /about`，AboutMe 页优先读后端正文(空则回退 site.js)，后台新增“关于我编辑”分栏预览页）
 
 ---
 
@@ -179,6 +179,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | POST /comment | 任意登录 | 发表评论（需登录，USER 亦可）：`articleId/content` + 蜜罐 website；IP 限流；昵称取账号 |
 | GET /comment/list | 管理员 | 全部评论（新在前） |
 | DELETE /comment/delete?id= | 任意登录 | 删除评论：管理员任意，普通用户仅本人 |
+| GET /about | 公开 | AboutMe 正文 Markdown（无则前端回退 site.js） |
+| PUT /about | 管理员 | 保存 AboutMe 正文 Markdown（about_me 单行 upsert） |
 | GET /category/selectAll 等 | 公开读/管理员写 | 同 article 模式 |
 | /user/** 全部 | 仅超管 | 不可删除/降级当前登录账号 |
 | POST /file/upload | 管理员 | multipart `file`；仅 jpg/jpeg/png/gif/webp（无 svg，防 XSS）；≤10MB；返回相对路径字符串 |
@@ -192,6 +194,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - `user`: id, username(唯一索引), password(`SHA256:`前缀哈希，明文旧数据首次登录自动升级),
   nickname, role(`SUPER_ADMIN`/`ADMIN`/`USER`), email, create_time
 - `comment`: id, article_id, user_id(发表用户，空=旧游客评论), nickname(40), content(2000), create_time
+- `about_me`: id(固定1), content(longtext, AboutMe 正文 Markdown), update_time
 
 ## 10. 工作流程（每个任务照此执行）
 

@@ -132,6 +132,8 @@ AncauqL_blog/
 
 - 评论管理：`/comment`
   - 展示全部评论（昵称 / 内容 / 所属文章 / 时间），可删除，或跳转到对应原文页。
+- 关于我编辑：`/about/edit`
+  - 管理员用 Markdown 编辑 AboutMe 正文（左编辑右预览，实时渲染），保存到 `about_me` 表；公开页优先显示之，空则回退 site.js。
 
 ### 登录与权限
 
@@ -201,7 +203,12 @@ AncauqL_blog/
 - `GET /comment?articleId=文章ID`：某篇文章的评论列表（公开，按时间升序）。
 - `POST /comment`：发表评论（**需登录，任意角色**，即发即显）。请求体含 `articleId/content`（昵称取账号，服务端定名防伪造）+ 蜜罐 `website`；按 IP 每分钟限流；内容 ≤2000 字。
 - `GET /comment/list`：全部评论（管理员，新的在前）。
-- `DELETE /comment/delete?id=评论ID`：删除评论（管理员）。
+- `DELETE /comment/delete?id=评论ID`：删除评论（任意登录：管理员任意、普通用户仅本人）。
+
+### 关于我接口
+
+- `GET /about`：AboutMe 正文（Markdown，公开）。AboutMe 页优先用它，为空则回退 site.js。
+- `PUT /about`：保存 AboutMe 正文 Markdown（管理员）。
 
 ### 文件接口
 
