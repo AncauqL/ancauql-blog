@@ -243,6 +243,22 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - 站点配置表（site_config），关于我页面后台可编辑。
 - Vue 2 → Vue 3 + Vite + Element Plus 迁移（页面少时做，越拖越贵）。
 
+### ⑥ 上线安全硬化与部署（待做 —— 站主已确认“以后再做”，对公网部署前必读）
+
+> 2026-09-09 站主决定：暂不做，先记录在此，日后按此执行。现状**可做私有/内网使用**，**不建议直接对公网开放**。已开放公开注册，风险比纯个人站更高。
+
+- 必做(上线前)：改掉 admin 默认口令(123456) —— 现在就能在“账号设置”做，别等。
+- 登录/注册**失败限流+锁定**(后端内存即可)；已有点评/注册 IP 限流，登录接口还没有。
+- 密码升级 **bcrypt**(PasswordUtil 加 `BCRYPT:` 分支，兼容存量 SHA256/明文升级链；只引 spring-security-crypto)。
+- `@RestControllerAdvice` 全局异常兜底，返回 `Result.error`，别裸抛 500/堆栈。
+- CORS 从 `@CrossOrigin("*")` 收敛：配白名单，或走同域 `/api` 反代并撤掉全开 CORS。
+- 数据库：建**独立低权限账号**+强密码，用环境变量注入，**别再把密码写进提交的 application.yml**。
+- 前端 `.env.production` 已默认 `/api`（同域反代），部署时按需改。
+- 反向代理：nginx(托管 dist + history fallback + `/api`→9999 + `/uploads`) + **HTTPS**(Let's Encrypt/Caddy) + 安全头。
+- 备份：DB 定期 dump 脚本 + 上线前全量备份。
+- 可选：公开注册是否保留/加邮箱验证(需接 SMTP) —— 见 §11-⑤/评论与账号决策。
+- 部署目标是站主的腾讯云北京轻量(Ubuntu)，凭据站主自持、**服务器操作由站主执行或明确授权后**由 agent 协助。
+
 ## 12. 已知问题 / 技术债（接手时先看这里）
 
 - Token 存后端内存，重启即掉线。
