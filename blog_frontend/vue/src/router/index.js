@@ -96,6 +96,16 @@ const routes = [
     }
   },
   {
+    path: '/about/edit',
+    name: 'AboutEditor',
+    component: () => import('../views/AboutEditor.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
+    }
+  },
+  {
     path: '*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue')

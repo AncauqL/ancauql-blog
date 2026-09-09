@@ -110,6 +110,7 @@
 </template>
 
 <script>
+import request from '@/utils/request'
 import { SITE } from '@/config/site'
 import { renderMarkdown } from '@/utils/markdown'
 
@@ -117,8 +118,17 @@ export default {
   name: 'AboutMe',
   data() {
     return {
-      site: SITE
+      site: SITE,
+      aboutContent: ''
     }
+  },
+  created() {
+    // 正文可后台编辑：优先用后台 Markdown，未设置时回退 site.js 的 profile.bio
+    request.get('/about').then(res => {
+      if (res.code === '200' && res.data && String(res.data).trim()) {
+        this.aboutContent = String(res.data)
+      }
+    }).catch(() => {})
   },
   computed: {
     profile() {
@@ -128,11 +138,14 @@ export default {
       return this.site.socials
     },
     bioHtml() {
+      if (this.aboutContent && this.aboutContent.trim()) {
+        return renderMarkdown(this.aboutContent)
+      }
       const bio = this.profile && this.profile.bio
       if (!bio || !bio.length) {
         return ''
       }
-      // 各段落以空行连接成一篇 Markdown 渲染（可含加粗/链接/列表/公式等）
+      // 各段落以空行连接成一篇 Markdown 渲染
       return renderMarkdown(bio.join('\n\n'))
     }
   }

@@ -38,6 +38,10 @@
             <i class="el-icon-chat-dot-round"></i><span>评论管理</span>
           </el-menu-item>
 
+          <el-menu-item index="/about/edit">
+            <i class="el-icon-edit-outline"></i><span>关于我编辑</span>
+          </el-menu-item>
+
           <el-menu-item index="/settings">
             <i class="el-icon-setting"></i><span>账号设置</span>
           </el-menu-item>
