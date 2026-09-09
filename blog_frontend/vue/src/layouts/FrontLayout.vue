@@ -26,6 +26,7 @@
               to="/article"
               class="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
             >进入后台</router-link>
+            <span v-else class="text-sm text-neutral-500">{{ displayName }}</span>
             <a
               href="javascript:void(0)"
               class="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
@@ -73,6 +74,7 @@
             @click.native="closeMobileMenu"
             class="text-2xl font-semibold tracking-tight hover:text-neutral-500 transition-colors"
           >后台</router-link>
+          <span v-else class="text-2xl font-semibold tracking-tight text-neutral-500">{{ displayName }}</span>
           <a
             href="javascript:void(0)"
             class="text-2xl font-semibold tracking-tight hover:text-neutral-500 transition-colors"
@@ -210,6 +212,13 @@ export default {
   computed: {
     manager() {
       return isManager(this.currentUser)
+    },
+    displayName() {
+      const u = this.currentUser
+      if (!u) {
+        return ''
+      }
+      return (u.nickname && u.nickname.trim()) ? u.nickname : u.username
     },
     feedUrl() {
       return API_BASE + '/feed.xml'
