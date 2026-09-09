@@ -17,6 +17,9 @@ public class Comment {
 
     private Integer articleId;
 
+    /** 发表评论的用户（旧游客评论可为空；新评论必为已登录用户） */
+    private Integer userId;
+
     private String nickname;
 
     private String content;
@@ -37,6 +40,14 @@ public class Comment {
 
     public void setArticleId(Integer articleId) {
         this.articleId = articleId;
+    }
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getNickname() {

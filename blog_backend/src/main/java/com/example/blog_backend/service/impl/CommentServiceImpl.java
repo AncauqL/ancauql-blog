@@ -25,6 +25,11 @@ public class CommentServiceImpl implements ICommentService {
     }
 
     @Override
+    public Comment selectById(Integer id) {
+        return commentMapper.selectById(id);
+    }
+
+    @Override
     public void insert(Comment comment) {
         commentMapper.insert(comment);
     }

@@ -9,6 +9,9 @@ public interface ICommentService {
     /** 某篇文章的评论（按时间升序，正文顺序） */
     List<Comment> selectByArticle(Integer articleId);
 
+    /** 按 id 查单条评论（用于删除前的权限校验） */
+    Comment selectById(Integer id);
+
     /** 新增一条评论 */
     void insert(Comment comment);
 

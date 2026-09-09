@@ -1,7 +1,9 @@
 package com.example.blog_backend.controller;
 
+import com.example.blog_backend.common.AuthContext;
 import com.example.blog_backend.common.Result;
 import com.example.blog_backend.dto.CommentAddRequest;
+import com.example.blog_backend.dto.UserProfile;
 import com.example.blog_backend.entity.Comment;
 import com.example.blog_backend.service.ICommentService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,20 +62,21 @@ public class CommentController {
         if (req.getArticleId() == null) {
             return Result.error("缺少文章信息");
         }
-        String nickname = trim(req.getNickname());
         String content = trim(req.getContent());
-        if (nickname.isEmpty() || content.isEmpty()) {
-            return Result.error("昵称和内容不能为空");
-        }
-        if (nickname.length() > 40) {
-            return Result.error("昵称最长 40 字");
+        if (content.isEmpty()) {
+            return Result.error("评论内容不能为空");
         }
         if (content.length() > 2000) {
             return Result.error("评论最长 2000 字");
         }
 
+        // 发表评论需登录（拦截器已保证）；昵称取账号昵称，服务端定名，防止伪造
+        UserProfile user = AuthContext.getUser();
+        String nickname = pickNickname(user);
+
         Comment comment = new Comment();
         comment.setArticleId(req.getArticleId());
+        comment.setUserId(user.getId());
         comment.setNickname(nickname);
         comment.setContent(content);
         comment.setCreateTime(LocalDateTime.now());
@@ -81,11 +84,34 @@ public class CommentController {
         return Result.success();
     }
 
-    // 删除评论（管理员）
+    // 删除评论：管理员可删任意；普通用户只能删自己发的
     @DeleteMapping("/delete")
     public Result delete(@RequestParam Integer id) {
+        Comment existing = commentService.selectById(id);
+        if (existing == null) {
+            return Result.error("评论不存在");
+        }
+        UserProfile user = AuthContext.getUser();
+        boolean manager = AuthContext.isManager();
+        boolean owner = existing.getUserId() != null
+                && existing.getUserId().equals(user.getId());
+        if (!manager && !owner) {
+            return Result.forbidden();
+        }
         commentService.delete(id);
         return Result.success();
+    }
+
+    private static String pickNickname(UserProfile user) {
+        if (user == null) {
+            return "匿名";
+        }
+        String nick = user.getNickname() == null ? "" : user.getNickname().trim();
+        if (!nick.isEmpty()) {
+            return nick.length() > 40 ? nick.substring(0, 40) : nick;
+        }
+        String fallback = user.getUsername() == null ? "" : user.getUsername().trim();
+        return fallback.isEmpty() ? "匿名" : fallback;
     }
 
     private static String trim(String value) {

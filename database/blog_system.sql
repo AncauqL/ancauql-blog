@@ -124,6 +124,7 @@ DROP TABLE IF EXISTS `comment`;
 CREATE TABLE `comment` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '评论ID',
   `article_id` int NOT NULL COMMENT '文章ID',
+  `user_id` int DEFAULT NULL COMMENT '发表评论的用户（空=旧游客评论）',
   `nickname` varchar(40) NOT NULL COMMENT '昵称',
   `content` varchar(2000) NOT NULL COMMENT '评论内容',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

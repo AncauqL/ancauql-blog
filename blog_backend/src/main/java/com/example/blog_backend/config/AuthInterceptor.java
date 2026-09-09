@@ -35,6 +35,36 @@ public class AuthInterceptor implements HandlerInterceptor {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
+        // /auth/me、/auth/logout：任意已登录用户即可（USER 也能查自己/登出）
+        if (path.equals("/auth/me") || path.equals("/auth/logout")) {
+            if (!AuthContext.isLoggedIn()) {
+                writeResult(response, Result.unauthorized());
+                AuthContext.clear();
+                return false;
+            }
+            return true;
+        }
+
+        // 评论：读某文章评论公开；发表/删除需登录（任意角色，controller 再校验本人）；
+        // 管理端列表仅管理员
+        if (path.startsWith("/comment")) {
+            boolean isList = "/comment/list".equals(path);
+            boolean isGet = "GET".equalsIgnoreCase(method);
+            if (!isGet || isList) {
+                if (!AuthContext.isLoggedIn()) {
+                    writeResult(response, Result.unauthorized());
+                    AuthContext.clear();
+                    return false;
+                }
+                if (isList && !AuthContext.isManager()) {
+                    writeResult(response, Result.forbidden());
+                    AuthContext.clear();
+                    return false;
+                }
+            }
+            return true;
+        }
+
         if (requiresSuperAdmin(path)) {
             if (!AuthContext.isLoggedIn()) {
                 writeResult(response, Result.unauthorized());
@@ -78,23 +108,9 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean requiresManager(String path, String method) {
-        if (path.equals("/auth/me") || path.equals("/auth/logout")) {
-            return true;
-        }
-
         // 图片上传等文件操作全部需要管理员
         if (path.startsWith("/file")) {
             return true;
-        }
-
-        // 评论：读某文章评论 / 发表（GET /comment、POST /comment）保持公开；
-        // 管理端列表与删除仅管理员
-        if (path.startsWith("/comment")) {
-            if ("DELETE".equalsIgnoreCase(method)
-                    || "/comment/list".equals(path)) {
-                return true;
-            }
-            return false;
         }
 
         if (path.startsWith("/article")) {

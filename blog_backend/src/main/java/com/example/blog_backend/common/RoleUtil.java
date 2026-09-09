@@ -27,11 +27,16 @@ public class RoleUtil {
             return "SUPER_ADMIN";
         }
 
+        if ("USER".equals(normalized)) {
+            return "USER";
+        }
+
         if ("ADMIN".equals(normalized) ||
                 "SUPER_ADMIN".equals(normalized)) {
             return normalized;
         }
 
-        return "ADMIN";
+        // 其它未知角色一律保守归为普通用户，绝不默认升级成管理员
+        return "USER";
     }
 }

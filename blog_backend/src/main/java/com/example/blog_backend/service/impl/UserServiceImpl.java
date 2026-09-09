@@ -122,6 +122,34 @@ public class UserServiceImpl implements IUserService {
         return user;
     }
 
+    @Override
+    public User register(String email, String nickname, String password) {
+        String account = email == null ? "" : email.trim();
+        String nick = nickname == null ? "" : nickname.trim();
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("请输入邮箱");
+        }
+        if (nick.isEmpty()) {
+            throw new IllegalArgumentException("请输入昵称");
+        }
+        if (password == null || password.length() < 8) {
+            throw new IllegalArgumentException("密码至少 8 位");
+        }
+        if (selectByUsername(account) != null) {
+            throw new IllegalArgumentException("该邮箱已被注册");
+        }
+
+        User user = new User();
+        user.setUsername(account);
+        user.setEmail(account);
+        user.setNickname(nick);
+        user.setRole("USER");
+        user.setPassword(PasswordUtil.encode(password));
+        userMapper.insert(user);
+        hidePassword(user);
+        return user;
+    }
+
     private void validateUser(User user, boolean requirePassword) {
         if (user.getUsername() == null ||
                 user.getUsername().trim().isEmpty()) {
