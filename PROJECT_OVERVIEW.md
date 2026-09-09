@@ -147,6 +147,11 @@ AncauqL_blog/
 - 超级管理员：`SUPER_ADMIN`
   - 拥有管理员权限。
   - 可访问账号管理。
+- 普通用户：`USER`
+  - 通过 `/register` 用邮箱+密码注册（注册成功即登录），也可在 `/login` 用邮箱登录。
+  - **无后台权限**：不能进后台，不能管理文章/分类/用户；仅可登录后发表/删除自己的评论。
+- 评论权限：发表评论需登录（任意角色）；删除评论＝管理员任意 / 普通用户仅本人；游客只能读、不能发。
+- 注册防灌：蜜罐字段 + 按 IP 限流；暂未做邮箱验证与找回密码。
 
 ## 后端接口概览
 
@@ -169,7 +174,8 @@ AncauqL_blog/
 
 ### 登录接口
 
-- `POST /auth/login`：登录，参数为 `username`、`password`。
+- `POST /auth/login`：登录，参数为 `username`、`password`（管理员用账号、普通用户用注册邮箱）。
+- `POST /auth/register`：注册普通用户（USER），参数 `email/nickname/password`（+蜜罐 `website`），成功即登录；邮箱即账号名。
 - `GET /auth/me`：获取当前登录用户。
 - `POST /auth/logout`：退出登录。
 
@@ -191,7 +197,7 @@ AncauqL_blog/
 ### 评论接口
 
 - `GET /comment?articleId=文章ID`：某篇文章的评论列表（公开，按时间升序）。
-- `POST /comment`：发表评论（公开，即发即显）。请求体含 `articleId/nickname/content`，另有隐藏蜜罐字段 `website`（命中则静默丢弃不落库）；按 IP 每分钟限流；昵称 ≤40 字、内容 ≤2000 字。
+- `POST /comment`：发表评论（**需登录，任意角色**，即发即显）。请求体含 `articleId/content`（昵称取账号，服务端定名防伪造）+ 蜜罐 `website`；按 IP 每分钟限流；内容 ≤2000 字。
 - `GET /comment/list`：全部评论（管理员，新的在前）。
 - `DELETE /comment/delete?id=评论ID`：删除评论（管理员）。
 
@@ -260,6 +266,7 @@ AncauqL_blog/
 
 - `id`：评论 ID。
 - `article_id`：所属文章 ID。
+- `user_id`：发表评论的用户 ID（登录后发；空=早期游客评论）。
 - `nickname`：昵称（≤40 字）。
 - `content`：评论内容（≤2000 字）。
 - `create_time`：发表时间。

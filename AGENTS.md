@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/去假订阅/RSS、文章置顶、404、懒加载、datetime 收敛、归档链接、.env、阅读缩放、KaTeX 数学+编辑器扩展、可收起目录；本批：自建轻量评论系统——comment 表、即发即显、蜜罐+限流、详情页评论区、后台评论管理）
+最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/去假订阅/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论；本批：开放普通用户体系——角色 USER、/auth/register 邮箱注册、评论改为登录后可发且绑定账号(user_id)、USER 无后台权限、登录/注册防越权修复）
 
 ---
 
@@ -71,6 +71,7 @@ AncauqL_blog/
 - [ ] **M4 长期增强**：RSS、评论、标签、统计
 - 体验/工程细节（2026-09-03 完成）：文章可后台“置顶”(is_top)→首页“置顶”大卡；优雅 404 页；文章图片懒加载；时间解析统一到 `utils/datetime.js`；归档条目改 `<router-link>`；`API_BASE` 走 `.env`(VUE_APP_API_BASE，见 .env.example)；前台阅读缩放(1.1，正文详情页再 1.1)
 - 评论系统（2026-09-09 完成）：自建轻量评论——`comment` 表、详情页评论区（即发即显）、蜜罐字段 + IP 限流、后台“评论管理”页（列表/删除/跳原文）
+- 用户体系（2026-09-09 完成）：开放注册普通用户(角色 USER)——`/auth/register` 邮箱注册(蜜罐+限流)；评论改**登录后可发并绑定账号(user_id)**，删除=管理员或本人；修复 RoleUtil 将未知角色误归 ADMIN 的越权隐患；USER 无后台权限，SUPER_ADMIN/ADMIN 不受影响
 
 ## 4. 铁律（违反任何一条都算事故）
 
@@ -146,7 +147,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - **时间字段**：后端 `LocalDateTime` 序列化后可能是数组 `[y,m,d,h,mi,s]` 或 ISO 字符串，
   前端 `formatTime` 两种都要兼容（现有页面有参考实现）。
 - **文章状态**：只有 `published` / `draft` 两个值，字符串直存。
-- **角色**：`SUPER_ADMIN` / `ADMIN`，游客无账号。权限判断后端在 `AuthContext`（ThreadLocal），
+- **角色**：`SUPER_ADMIN` / `ADMIN`（后台）/ `USER`（注册的普通用户，仅可评论）/ 游客无账号。权限判断后端在 `AuthContext`（ThreadLocal），
   前端在 router meta.roles + localStorage `blog_user`。
 - **分页返回**：MyBatis-Plus `IPage` 原样返回，前端取 `res.data.records` / `res.data.total`。
 - **列表接口不返回 content**（大字段），需要正文时用 `/article/detail` 单查。
@@ -163,8 +164,9 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 |---|---|---|
 | GET /hello | 公开 | 健康检查 |
 | GET /feed.xml | 公开 | RSS 2.0 订阅源：仅已发布文章、按 create_time desc（最多 50），文章链接按 `blog.site-url` 拼前台地址；标题用 `blog.site-title` |
-| POST /auth/login | 公开 | `{username,password}` → `{token,user}` |
-| GET /auth/me · POST /auth/logout | 登录 | Token 在内存，后端重启失效 |
+| POST /auth/login | 公开 | `{username,password}` → `{token,user}`；管理员用账号、普通用户用注册邮箱(=username) |
+| POST /auth/register | 公开 | 注册普通用户(USER)：email/nickname/password + 蜜罐 website + IP 限流；成功即登录 |
+| GET /auth/me · POST /auth/logout | 任意登录 | 仅需登录(USER 亦可)；Token 在内存，重启失效 |
 | GET /article/selectAll | 公开* | 游客只见 published；管理员见全部（旧接口，新代码请用 selectPage） |
 | GET /article/selectPage | 公开* | 参数全可选：pageNum=1, pageSize=10, articleTitle, status（status 仅管理员生效，游客恒 published）；按 create_time desc, id desc；不含 content |
 | GET /article/detail?id= | 公开* | 草稿仅管理员可见(403)；游客访问已发布文章时 view_count 原子 +1，管理员预览不计数 |
@@ -173,9 +175,9 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | POST /article | 管理员 | 带 id 更新 / 无 id 新增；**返回带 id 的完整对象** |
 | DELETE /article/delete?id= | 管理员 | |
 | GET /comment?articleId= | 公开 | 某文章评论列表（时间升序） |
-| POST /comment | 公开 | 发表评论：`articleId/nickname/content` + 蜜罐 `website`；IP 限流；昵称≤40、内容≤2000 |
+| POST /comment | 任意登录 | 发表评论（需登录，USER 亦可）：`articleId/content` + 蜜罐 website；IP 限流；昵称取账号 |
 | GET /comment/list | 管理员 | 全部评论（新在前） |
-| DELETE /comment/delete?id= | 管理员 | 删除评论 |
+| DELETE /comment/delete?id= | 任意登录 | 删除评论：管理员任意，普通用户仅本人 |
 | GET /category/selectAll 等 | 公开读/管理员写 | 同 article 模式 |
 | /user/** 全部 | 仅超管 | 不可删除/降级当前登录账号 |
 | POST /file/upload | 管理员 | multipart `file`；仅 jpg/jpeg/png/gif/webp（无 svg，防 XSS）；≤10MB；返回相对路径字符串 |
@@ -187,8 +189,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
   status('published'默认), is_top(是否置顶,1=置顶), view_count, create_time, update_time(自动更新)
 - `category`: id, name, description, sort, create_time
 - `user`: id, username(唯一索引), password(`SHA256:`前缀哈希，明文旧数据首次登录自动升级),
-  nickname, role, email, create_time
-- `comment`: id, article_id, nickname(40), content(2000), create_time(评论,即发即显)
+  nickname, role(`SUPER_ADMIN`/`ADMIN`/`USER`), email, create_time
+- `comment`: id, article_id, user_id(发表用户，空=旧游客评论), nickname(40), content(2000), create_time
 
 ## 10. 工作流程（每个任务照此执行）
 
