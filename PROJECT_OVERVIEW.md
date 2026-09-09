@@ -130,6 +130,9 @@ AncauqL_blog/
   - 支持新增、编辑、删除管理员账号。
   - 字段包括账号、昵称、邮箱、角色、密码。
 
+- 评论管理：`/comment`
+  - 展示全部评论（昵称 / 内容 / 所属文章 / 时间），可删除，或跳转到对应原文页。
+
 ### 登录与权限
 
 - 登录页：`/login`
@@ -184,6 +187,13 @@ AncauqL_blog/
 - `GET /article/stats`：站点统计，返回 `{articleCount, totalViews}`（仅统计已发布文章；写作年数由前端按建站年份计算）。
 - `POST /article`：新增或编辑文章；请求体带 `id` 时编辑，不带 `id` 时新增。**返回带 id 的完整文章对象**。
 - `DELETE /article/delete?id=文章ID`：删除文章。
+
+### 评论接口
+
+- `GET /comment?articleId=文章ID`：某篇文章的评论列表（公开，按时间升序）。
+- `POST /comment`：发表评论（公开，即发即显）。请求体含 `articleId/nickname/content`，另有隐藏蜜罐字段 `website`（命中则静默丢弃不落库）；按 IP 每分钟限流；昵称 ≤40 字、内容 ≤2000 字。
+- `GET /comment/list`：全部评论（管理员，新的在前）。
+- `DELETE /comment/delete?id=评论ID`：删除评论（管理员）。
 
 ### 文件接口
 
@@ -245,6 +255,14 @@ AncauqL_blog/
 - `role`：角色，当前使用 `SUPER_ADMIN` / `ADMIN`。
 - `email`：邮箱。
 - `create_time`：创建时间。
+
+`comment` 表（自建轻量评论，即发即显）：
+
+- `id`：评论 ID。
+- `article_id`：所属文章 ID。
+- `nickname`：昵称（≤40 字）。
+- `content`：评论内容（≤2000 字）。
+- `create_time`：发表时间。
 
 ## 启动方式
 

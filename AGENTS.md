@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-03（移除 M3-⑤ 安全/部署规划；站点信息集中 + AboutMe 详情页 + 真实社交/联系方式 + 去假订阅 + RSS /feed.xml；第二批：文章置顶 is_top→首页置顶大卡、优雅 404、图片懒加载、时间解析收敛 utils/datetime.js、归档条目改链接、API_BASE 走 .env、前台阅读缩放；第三批：正文支持 LaTeX 数学(KaTeX + markdown-it-texmath)、编辑器工具栏扩充）
+最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/去假订阅/RSS、文章置顶、404、懒加载、datetime 收敛、归档链接、.env、阅读缩放、KaTeX 数学+编辑器扩展、可收起目录；本批：自建轻量评论系统——comment 表、即发即显、蜜罐+限流、详情页评论区、后台评论管理）
 
 ---
 
@@ -70,6 +70,7 @@ AncauqL_blog/
   - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
 - [ ] **M4 长期增强**：RSS、评论、标签、统计
 - 体验/工程细节（2026-09-03 完成）：文章可后台“置顶”(is_top)→首页“置顶”大卡；优雅 404 页；文章图片懒加载；时间解析统一到 `utils/datetime.js`；归档条目改 `<router-link>`；`API_BASE` 走 `.env`(VUE_APP_API_BASE，见 .env.example)；前台阅读缩放(1.1，正文详情页再 1.1)
+- 评论系统（2026-09-09 完成）：自建轻量评论——`comment` 表、详情页评论区（即发即显）、蜜罐字段 + IP 限流、后台“评论管理”页（列表/删除/跳原文）
 
 ## 4. 铁律（违反任何一条都算事故）
 
@@ -171,6 +172,10 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | GET /article/archive | 公开 | 归档：已发布文章按年分组 `[{year, articles:[{id,title,createTime}]}]`，年份与组内均倒序 |
 | POST /article | 管理员 | 带 id 更新 / 无 id 新增；**返回带 id 的完整对象** |
 | DELETE /article/delete?id= | 管理员 | |
+| GET /comment?articleId= | 公开 | 某文章评论列表（时间升序） |
+| POST /comment | 公开 | 发表评论：`articleId/nickname/content` + 蜜罐 `website`；IP 限流；昵称≤40、内容≤2000 |
+| GET /comment/list | 管理员 | 全部评论（新在前） |
+| DELETE /comment/delete?id= | 管理员 | 删除评论 |
 | GET /category/selectAll 等 | 公开读/管理员写 | 同 article 模式 |
 | /user/** 全部 | 仅超管 | 不可删除/降级当前登录账号 |
 | POST /file/upload | 管理员 | multipart `file`；仅 jpg/jpeg/png/gif/webp（无 svg，防 XSS）；≤10MB；返回相对路径字符串 |
@@ -183,6 +188,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - `category`: id, name, description, sort, create_time
 - `user`: id, username(唯一索引), password(`SHA256:`前缀哈希，明文旧数据首次登录自动升级),
   nickname, role, email, create_time
+- `comment`: id, article_id, nickname(40), content(2000), create_time(评论,即发即显)
 
 ## 10. 工作流程（每个任务照此执行）
 
@@ -229,7 +235,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 **未做（后续）**：
 - sitemap.xml 与 SEO meta（依赖 SSR / 预渲染，评估后再定）。
 - 标签系统：tag 表 + article_tag 关联表 + 前后台 UI。
-- 评论：先挂 Giscus（GitHub Discussions，零后端）试运行，再决定是否自建。
+- 评论：✅ 已自建轻量（comment 表、即发即显 + 后台管理，2026-09-09，见 §3）；Giscus 仅作未来上线后的可选替代（需 GitHub 账号 + 公网）。
 - 访问统计：自托管 Umami 或简单 access_log 表。
 - 站点配置表（site_config），关于我页面后台可编辑。
 - Vue 2 → Vue 3 + Vite + Element Plus 迁移（页面少时做，越拖越贵）。
@@ -260,3 +266,4 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 新文章 POST 后返回实体 | 编辑器保存新文章后需要 id 才能原地继续编辑 |
 | 移除 M3-⑤「安全硬化 + 部署上线」规划（2026-09-03） | 站主拍板：不按原预设路线执行该大步，改为与站主商量确定要新增的附加/拓展功能；原规划涉及的各项安全/部署事项，此后一律按新的商量结果再定 |
 | 站点信息集中化 + AboutMe 详情页 + 移除首页“假订阅”（2026-09-03） | 首页简介与 AboutMe 文案此前两套不一致；假订阅收集邮箱却不做任何事，属误导。集中到 `config/site.js` 一处维护，AboutMe 空版块自动隐藏待填充，联系区改为真实可用的 RSS + 社交 + 写信 |
+| 评论用自建轻量（comment 表），暂不上 Giscus（2026-09-09） | 未上线到公网、访客无需账号留言、数据 100% 自持；Giscus 需公开仓库 + GitHub 登录 + 公网，仅作未来可选替代 |
