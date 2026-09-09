@@ -34,6 +34,10 @@
             <i class="el-icon-folder"></i><span>分类管理</span>
           </el-menu-item>
 
+          <el-menu-item index="/comment">
+            <i class="el-icon-chat-dot-round"></i><span>评论管理</span>
+          </el-menu-item>
+
           <el-menu-item v-if="superAdmin" index="/user">
             <i class="el-icon-user"></i><span>账号管理</span>
           </el-menu-item>

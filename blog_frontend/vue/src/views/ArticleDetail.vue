@@ -67,6 +67,59 @@
           </router-link>
           <span v-else class="post-nav-placeholder"></span>
         </nav>
+
+        <!-- ======== 评论区（即发即显） ======== -->
+        <section class="comments">
+          <h2 class="comments-title">
+            评论
+            <span v-if="comments.length" class="comments-count">({{ comments.length }})</span>
+          </h2>
+
+          <div v-if="comments.length" class="comment-list">
+            <div v-for="c in comments" :key="c.id" class="comment-item">
+              <div class="comment-head">
+                <span class="comment-name">{{ c.nickname }}</span>
+                <span class="comment-time">{{ formatTime(c.createTime) }}</span>
+              </div>
+              <div class="comment-text">{{ c.content }}</div>
+            </div>
+          </div>
+          <p v-else class="comments-empty">还没有评论，来抢个沙发～</p>
+
+          <form class="comment-form" @submit.prevent="submitComment">
+            <!-- 蜜罐：视觉隐藏，只有灌水机器人会填；人工填了后端也静默丢弃 -->
+            <input
+                v-model="commentWebsite"
+                type="text"
+                class="comment-honeypot"
+                name="website"
+                tabindex="-1"
+                autocomplete="off"
+            >
+            <input
+                v-model="commentName"
+                type="text"
+                class="comment-name-input"
+                placeholder="你的昵称（必填）"
+                maxlength="40"
+                required
+            >
+            <textarea
+                v-model="commentText"
+                class="comment-textarea"
+                placeholder="说点什么…（最多 2000 字）"
+                maxlength="2000"
+                rows="4"
+                required
+            ></textarea>
+            <div class="comment-actions">
+              <span class="comment-hint">理性发言，友善交流</span>
+              <button type="submit" class="comment-submit" :disabled="submitting">
+                {{ submitting ? '提交中…' : '发表评论' }}
+              </button>
+            </div>
+          </form>
+        </section>
       </article>
 
       <aside v-if="tocOpen && tocItems.length >= 2" class="toc">
@@ -132,7 +185,12 @@ export default {
       tocItems: [],
       activeHeading: '',
       observer: null,
-      tocOpen: false
+      tocOpen: false,
+      comments: [],
+      commentName: '',
+      commentText: '',
+      commentWebsite: '',
+      submitting: false
     }
   },
   computed: {
@@ -181,6 +239,9 @@ export default {
       this.neighbors = { prev: null, next: null }
       this.tocItems = []
       this.activeHeading = ''
+      this.comments = []
+      this.commentText = ''
+      this.commentWebsite = ''
       window.scrollTo(0, 0)
     },
     load() {
@@ -191,6 +252,7 @@ export default {
         this.loaded = true
         if (res.code === '200') {
           this.article = res.data
+          this.loadComments(id)
           this.loadNeighbors(id)
           this.$nextTick(() => {
             this.buildToc()
@@ -225,6 +287,42 @@ export default {
           this.categoryList = res.data || []
         }
       }).catch(() => {})
+    },
+
+    /* ---------- 评论 ---------- */
+    loadComments(id) {
+      request.get('/comment', { params: { articleId: id } }).then(res => {
+        if (res.code === '200') {
+          this.comments = res.data || []
+        }
+      }).catch(() => {})
+    },
+    submitComment() {
+      const name = this.commentName.trim()
+      const text = this.commentText.trim()
+      if (!name || !text) {
+        return
+      }
+      this.submitting = true
+      request.post('/comment', {
+        articleId: this.article.id,
+        nickname: name,
+        content: text,
+        website: this.commentWebsite
+      }).then(res => {
+        if (res.code === '200') {
+          this.$message.success('评论成功')
+          this.commentText = ''
+          this.commentWebsite = ''
+          this.loadComments(this.article.id)
+        } else {
+          this.$message.error(res.msg || '发表失败')
+        }
+      }).catch(() => {
+        this.$message.error('网络错误，请稍后再试')
+      }).finally(() => {
+        this.submitting = false
+      })
     },
 
     /* ---------- 目录 ---------- */
@@ -506,6 +604,122 @@ export default {
 
 .toc-level-3 {
   padding-left: 42px;
+}
+
+/* ---------- 评论区 ---------- */
+.comments {
+  margin-top: 44px;
+  padding-top: 24px;
+  border-top: 1px solid #ebeef5;
+}
+.comments-title {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: #1f1e33;
+}
+.comments-count {
+  color: #909399;
+  font-weight: normal;
+  font-size: 14px;
+}
+.comment-list {
+  margin-bottom: 20px;
+}
+.comment-item {
+  padding: 12px 0;
+  border-bottom: 1px dashed #f0f1f3;
+}
+.comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.comment-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f1e33;
+}
+.comment-time {
+  font-size: 12px;
+  color: #a0a3a8;
+}
+.comment-text {
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #444b52;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.comments-empty {
+  margin: 0 0 20px;
+  color: #909399;
+  font-size: 14px;
+}
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.comment-honeypot {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.comment-name-input {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  max-width: 260px;
+}
+.comment-name-input:focus,
+.comment-textarea:focus {
+  border-color: #1f1e33;
+}
+.comment-textarea {
+  padding: 10px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+  font-family: inherit;
+  outline: none;
+}
+.comment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.comment-hint {
+  color: #a0a3a8;
+  font-size: 12px;
+}
+.comment-submit {
+  height: 36px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 6px;
+  background: #1f1e33;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.comment-submit:hover {
+  background: #545c64;
+}
+.comment-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 1100px) {

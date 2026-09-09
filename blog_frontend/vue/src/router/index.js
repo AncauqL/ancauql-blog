@@ -71,6 +71,16 @@ const routes = [
     }
   },
   {
+    path: '/comment',
+    name: 'CommentAdmin',
+    component: () => import('../views/CommentAdmin.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
+    }
+  },
+  {
     path: '*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue')
