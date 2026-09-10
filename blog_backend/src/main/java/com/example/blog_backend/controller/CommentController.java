@@ -2,7 +2,9 @@ package com.example.blog_backend.controller;
 
 import com.example.blog_backend.common.AuthContext;
 import com.example.blog_backend.common.Result;
+import com.example.blog_backend.common.VisitorKeyUtil;
 import com.example.blog_backend.dto.CommentAddRequest;
+import com.example.blog_backend.dto.CommentLikeRequest;
 import com.example.blog_backend.dto.UserProfile;
 import com.example.blog_backend.entity.Comment;
 import com.example.blog_backend.service.ICommentService;
@@ -33,10 +35,12 @@ public class CommentController {
     @Autowired
     private ICommentService commentService;
 
-    // 某篇文章的评论（公开，按时间升序）
+    // 某篇文章的评论（公开，顶层按时间升序、回复紧跟其顶层）
     @GetMapping
-    public Result list(@RequestParam Integer articleId) {
-        return Result.success(commentService.selectByArticle(articleId));
+    public Result list(@RequestParam Integer articleId,
+                       HttpServletRequest request) {
+        return Result.success(commentService.selectByArticle(articleId,
+                visitorKey(request)));
     }
 
     // 管理端：全部评论（新的在前）
@@ -44,6 +48,21 @@ public class CommentController {
     public Result adminList() {
         List<Comment> all = commentService.selectAll();
         return Result.success(all);
+    }
+
+    // 点赞 / 取消点赞（公开，按访客标识去重，同一人只能点一次）
+    @PostMapping("/like")
+    public Result like(HttpServletRequest request,
+                       @RequestBody CommentLikeRequest req) {
+        if (req == null || req.getCommentId() == null) {
+            return Result.error("缺少评论信息");
+        }
+        try {
+            return Result.success(commentService.toggleLike(
+                    req.getCommentId(), visitorKey(request)));
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
     }
 
     // 发表评论（公开）
@@ -54,7 +73,7 @@ public class CommentController {
         if (req.getWebsite() != null && !req.getWebsite().trim().isEmpty()) {
             return Result.success();
         }
-        if (!allow(request.getRemoteAddr())) {
+        if (!allow(clientIp(request))) {
             return Result.error("评论太频繁，请稍后再试");
         }
 
@@ -69,6 +88,22 @@ public class CommentController {
             return Result.error("评论最长 2000 字");
         }
 
+        // 回复：校验上级评论存在且属于同一篇文章，并统一挂到顶层评论下（只做两级）
+        Integer parentId = null;
+        String replyToNickname = null;
+        if (req.getParentId() != null) {
+            Comment parent = commentService.selectById(req.getParentId());
+            if (parent == null) {
+                return Result.error("要回复的评论不存在");
+            }
+            if (!parent.getArticleId().equals(req.getArticleId())) {
+                return Result.error("要回复的评论不属于这篇文章");
+            }
+            parentId = parent.getParentId() == null
+                    ? parent.getId() : parent.getParentId();
+            replyToNickname = parent.getNickname();
+        }
+
         // 发表评论需登录（拦截器已保证）；昵称取账号昵称，服务端定名，防止伪造
         UserProfile user = AuthContext.getUser();
         String nickname = pickNickname(user);
@@ -78,6 +113,8 @@ public class CommentController {
         comment.setUserId(user.getId());
         comment.setNickname(nickname);
         comment.setContent(content);
+        comment.setParentId(parentId);
+        comment.setReplyToNickname(replyToNickname);
         comment.setCreateTime(LocalDateTime.now());
         commentService.insert(comment);
         return Result.success();
@@ -101,8 +138,23 @@ public class CommentController {
         return Result.success();
     }
 
-    private static String pickNickname(UserProfile user) {
-        if (user == null) {
+    /** 当前访客标识：登录用 u{id}，未登录用 md5(IP+UA+盐) */
+    private static String visitorKey(HttpServletRequest request) {
+        UserProfile user = AuthContext.getUser();
+        Integer userId = user == null ? null : user.getId();
+        return VisitorKeyUtil.of(userId, clientIp(request),
+                request.getHeader("User-Agent"));
+    }
+
+    /** nginx 反代时真实 IP 在 X-Forwarded-For 的第一段 */
+    private static String clientIp(HttpServletRequest request) {
+        return VisitorKeyUtil.clientIp(
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"),
+                request.getRemoteAddr());
+    }
+
+    private static String pickNickname(UserProfile user) {        if (user == null) {
             return "匿名";
         }
         String nick = user.getNickname() == null ? "" : user.getNickname().trim();

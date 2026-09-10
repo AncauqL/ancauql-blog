@@ -15,7 +15,22 @@
       <el-table-column prop="nickname" label="昵称" width="120" />
       <el-table-column label="内容" min-width="240">
         <template slot-scope="scope">
+          <span v-if="scope.row.parentId" class="reply-flag">
+            回复 @{{ scope.row.replyToNickname || '已删除' }}
+          </span>
           <span class="content-cell">{{ scope.row.content }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="类型" width="90" align="center">
+        <template slot-scope="scope">
+          <el-tag size="mini" :type="scope.row.parentId ? 'info' : 'success'">
+            {{ scope.row.parentId ? '回复' : '评论' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="点赞" width="70" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.likeCount || 0 }}
         </template>
       </el-table-column>
       <el-table-column label="文章" min-width="160">
@@ -32,7 +47,7 @@
       </el-table-column>
       <el-table-column label="操作" width="120" fixed="right">
         <template slot-scope="scope">
-          <el-button type="danger" size="mini" @click="del(scope.row.id)">删除</el-button>
+          <el-button type="danger" size="mini" @click="del(scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -90,10 +105,13 @@ export default {
     goPost(id) {
       window.open('/post/' + id, '_blank')
     },
-    del(id) {
-      this.$confirm('确定删除这条评论吗？', '提示', { type: 'warning' })
+    del(row) {
+      const tip = row.parentId
+          ? '确定删除这条回复吗？'
+          : '确定删除这条评论吗？它下面的回复也会一起删除。'
+      this.$confirm(tip, '提示', { type: 'warning' })
         .then(() => {
-          request.delete('/comment/delete?id=' + id).then(res => {
+          request.delete('/comment/delete?id=' + row.id).then(res => {
             if (res.code === '200') {
               this.$message.success('已删除')
               this.load()
@@ -116,6 +134,12 @@ export default {
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+.reply-flag {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 12px;
+  color: #909399;
 }
 .page-header h2 {
   margin: 0;

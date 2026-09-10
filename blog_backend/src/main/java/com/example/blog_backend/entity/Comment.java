@@ -1,6 +1,7 @@
 package com.example.blog_backend.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
@@ -24,7 +25,51 @@ public class Comment {
 
     private String content;
 
+    /** 所属顶层评论 id（NULL=顶层评论）；回复也统一挂在顶层下，只做两级展示 */
+    private Integer parentId;
+
+    /** 被回复者昵称（冗余存储：对方评论被删也能正常显示「回复 @某某」） */
+    private String replyToNickname;
+
+    private Integer likeCount;
+
     private LocalDateTime createTime;
+
+    /** 当前访客是否已点赞（不落库，查询时回填） */
+    @TableField(exist = false)
+    private Boolean liked;
+
+    public Integer getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Integer parentId) {
+        this.parentId = parentId;
+    }
+
+    public String getReplyToNickname() {
+        return replyToNickname;
+    }
+
+    public void setReplyToNickname(String replyToNickname) {
+        this.replyToNickname = replyToNickname;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+
+    public Boolean getLiked() {
+        return liked;
+    }
+
+    public void setLiked(Boolean liked) {
+        this.liked = liked;
+    }
 
     public Integer getId() {
         return id;

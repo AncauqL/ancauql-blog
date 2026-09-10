@@ -13,7 +13,18 @@ public class CommentAddRequest {
 
     private String content;
 
+    /** 回复某条评论时带上级评论 id；为空表示发顶层评论 */
+    private Integer parentId;
+
     private String website;
+
+    public Integer getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Integer parentId) {
+        this.parentId = parentId;
+    }
 
     public Integer getArticleId() {
         return articleId;

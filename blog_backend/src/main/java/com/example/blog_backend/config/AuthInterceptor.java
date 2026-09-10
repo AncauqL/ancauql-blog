@@ -46,9 +46,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 评论：读某文章评论公开；发表/删除需登录（任意角色，controller 再校验本人）；
-        // 管理端列表仅管理员
+        // 评论：读某文章评论公开；点赞任何访客都能点（按访客标识去重，controller 负责）；
+        // 发表/删除需登录（controller 再校验本人）；管理端列表仅管理员
         if (path.startsWith("/comment")) {
+            if ("/comment/like".equals(path)) {
+                return true;
+            }
             boolean isList = "/comment/list".equals(path);
             boolean isGet = "GET".equalsIgnoreCase(method);
             if (!isGet || isList) {

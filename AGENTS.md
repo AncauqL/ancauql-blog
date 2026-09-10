@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-11（前批：…、**标签系统**、**站内搜索升级**、**站点信息后台可编辑**、**访问统计 + 数据看板**；本批：**SEO**——后端新增 `GET /sitemap.xml`（首页/归档/关于我/每篇已发布文章/有文章的标签页，含 lastmod）与 `GET /robots.txt`，前端新增 `utils/seo.js` 按路由改 title/description/OG 标签、`public/index.html` 补静态兜底 meta，后台文章列表 `selectPublishedBriefs` 只为 sitemap 取精简字段）
+最后更新：2026-09-11（前批：…、**标签系统**、**站内搜索升级**、**站点信息后台可编辑**、**访问统计 + 数据看板**、**SEO（sitemap/robots + meta）**；本批：**评论增强**——`comment` 表加 `parent_id`/`reply_to_nickname`/`like_count` + 新增 `comment_like` 去重表，评论支持两级回复与点赞（未登录也能点赞），`POST /comment/like` 公开、`GET /comment` 回填 `liked`，后台评论管理页显示类型/点赞数，删除顶层评论会连带删回复与点赞）
 
 ---
 
@@ -29,7 +29,7 @@ AncauqL_blog/
 │     ├─ service/ + impl/     ← 业务层
 │     ├─ mapper/              ← MyBatis-Plus Mapper（基本无 XML，UserMapper.xml 除外）
 │     ├─ entity/ dto/         ← 实体与传输对象（dto 含 ArchiveGroup / ArticleNeighbors）
-│     ├─ common/              ← Result / AuthContext / PasswordUtil / RoleUtil
+│     ├─ common/              ← Result / AuthContext / PasswordUtil / RoleUtil / VisitorKeyUtil
 │     └─ config/              ← WebConfig（拦截器+静态资源）/ AuthInterceptor / MybatisPlusConfig
 ├─ blog_frontend/vue/         ← Vue 2 + Element UI，开发端口 8080（本机实际 8081，见 §5）
 │  └─ src/
@@ -78,6 +78,7 @@ AncauqL_blog/
 - 标签系统（2026-09-10 完成）：`tag` + `article_tag` 两表（多对多）；`/tag` 接口（公开读、管理员写，重名/空名给出中文报错）；文章可挂多个标签（编辑器多选，可直接输入新名字回车即建）；后台「标签管理」页（`/tag`）增删改 + 各标签已发布文章数；首页标签筛选条（写进地址栏 `/?tag=id`，详情页标签可点进来）；首页卡片、文章管理列表、详情页均显示标签；标签按已发布文章计数（草稿不计）
 - 体验/工程细节（2026-09-03 完成）：文章可后台“置顶”(is_top)→首页“置顶”大卡；优雅 404 页；文章图片懒加载；时间解析统一到 `utils/datetime.js`；归档条目改 `<router-link>`；`API_BASE` 走 `.env`(VUE_APP_API_BASE，见 .env.example)；前台阅读缩放(1.1，正文详情页再 1.1)
 - 评论系统（2026-09-09 完成）：自建轻量评论——`comment` 表、详情页评论区（即发即显）、蜜罐字段 + IP 限流、后台“评论管理”页（列表/删除/跳原文）
+- 评论增强：回复 + 点赞（2026-09-11 完成）：`comment` 增加 `parent_id`（回复统一挂到顶层评论，只做两级）/`reply_to_nickname`（冗余昵称，对方评论删了也能显示「回复 @某某」）/`like_count`；新增 `comment_like`（comment_id + visitor_key 复合主键）做点赞去重；`POST /comment/like` **公开**（未登录也能点，同访客再点即取消），`GET /comment` 按当前访客回填每条评论的 `liked` 并按「顶层 + 紧跟其回复」排序；点赞数走数据库端原子加减且不低于 0；删除顶层评论会**连带删除其回复与相关点赞**（前端确认框有提示）；后台评论管理页新增「类型（评论/回复）」与「点赞」列；访客标识统一抽到 `common/VisitorKeyUtil`（登录 `u{id}`、未登录 md5(IP+UA+盐)），访问统计也改用它
 - 用户体系（2026-09-09 完成）：开放注册普通用户(角色 USER)——`/auth/register` 邮箱注册(蜜罐+限流)；评论改**登录后可发并绑定账号(user_id)**，删除=管理员或本人；修复 RoleUtil 将未知角色误归 ADMIN 的越权隐患；USER 无后台权限，SUPER_ADMIN/ADMIN 不受影响
 
 ## 4. 铁律（违反任何一条都算事故）
@@ -185,10 +186,11 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | GET /article/archive | 公开 | 归档：已发布文章按年分组 `[{year, articles:[{id,title,createTime}]}]`，年份与组内均倒序 |
 | POST /article | 管理员 | 带 id 更新 / 无 id 新增；**返回带 id 的完整对象** |
 | DELETE /article/delete?id= | 管理员 | |
-| GET /comment?articleId= | 公开 | 某文章评论列表（时间升序） |
-| POST /comment | 任意登录 | 发表评论（需登录，USER 亦可）：`articleId/content` + 蜜罐 website；IP 限流；昵称取账号 |
+| GET /comment?articleId= | 公开 | 某文章评论列表：顶层按时间升序、每条顶层后面紧跟它的回复；每条带 `parentId`/`replyToNickname`/`likeCount`/`liked`（liked 按当前访客回填） |
+| POST /comment | 任意登录 | 发表评论/回复（需登录，USER 亦可）：`articleId/content/parentId?` + 蜜罐 website；IP 限流；昵称取账号；回复会校验上级存在且同文章并统一挂到顶层 |
+| POST /comment/like | 公开 | 点赞/取消点赞 `{commentId}`：同一访客（登录 `u{id}`、未登录 md5(IP+UA+盐)）只能点一次，再点即取消；返回 `{likeCount, liked}` |
 | GET /comment/list | 管理员 | 全部评论（新在前） |
-| DELETE /comment/delete?id= | 任意登录 | 删除评论：管理员任意，普通用户仅本人 |
+| DELETE /comment/delete?id= | 任意登录 | 删除评论：管理员任意，普通用户仅本人；删顶层评论会连带删掉它的回复与相关点赞 |
 | GET /about | 公开 | AboutMe 正文 Markdown（无则前端回退 site.js） |
 | PUT /about | 管理员 | 保存 AboutMe 正文 Markdown（about_me 单行 upsert） |
 | GET /tag/selectAll | 公开 | 标签列表 `[{id,name,count}]`（count=该标签下**已发布**文章数），按 name 升序 |
@@ -210,7 +212,9 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - `category`: id, name, description, sort, create_time
 - `user`: id, username(唯一索引), password(`SHA256:`前缀哈希，明文旧数据首次登录自动升级),
   nickname, role(`SUPER_ADMIN`/`ADMIN`/`USER`), email, create_time
-- `comment`: id, article_id, user_id(发表用户，空=旧游客评论), nickname(40), content(2000), create_time
+- `comment`: id, article_id, user_id(发表用户，空=旧游客评论), nickname(40), content(2000),
+  parent_id(所属顶层评论，空=顶层), reply_to_nickname(被回复者昵称，冗余), like_count, create_time
+- `comment_like`: comment_id + visitor_key(复合主键，登录 `u{id}` / 未登录 md5(IP+UA+盐)), create_time（点赞去重，删评论时一并清理）
 - `about_me`: id(固定1), content(longtext, AboutMe 正文 Markdown), update_time
 - `tag`: id, name(唯一索引, ≤50), create_time
 - `article_tag`: article_id + tag_id（复合主键，多对多；删标签时后端会清掉这里的关联）
@@ -262,7 +266,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 **未做（后续）**：
 - sitemap.xml 与 SEO meta：✅ 已完成（2026-09-11，见 §3；后端出 `/sitemap.xml` + `/robots.txt`，前端按路由改 title/OG。仍是客户端改 meta，**要更好的收录效果后续可加预渲染**）。
 - 标签系统：✅ 已完成（2026-09-10，见 §3；tag + article_tag 两表 + 前后台 UI）。
-- 评论：✅ 已自建轻量（comment 表、即发即显 + 后台管理，2026-09-09，见 §3）；Giscus 仅作未来上线后的可选替代（需 GitHub 账号 + 公网）。
+- 评论：✅ 已自建轻量（comment 表、即发即显 + 后台管理，2026-09-09，见 §3）；回复 + 点赞增强 ✅ 2026-09-11（见 §3）；Giscus 仅作未来上线后的可选替代（需 GitHub 账号 + 公网）。
 - 访问统计：✅ 已完成（2026-09-11，见 §3；`visit_log` 原始记录 + `POST /visit` 上报 + `/dashboard` 看板，未引第三方统计服务）。
 - 站点配置表（site_config）：✅ 已完成（2026-09-10，见 §3；前台信息与 AboutMe 资料后台可视化编辑，代码默认值仍作兜底）。
 - Vue 2 → Vue 3 + Vite + Element Plus 迁移（页面少时做，越拖越贵）。
@@ -288,6 +292,9 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - 统计上报依赖前端 JS（`App.vue` 每次路由切换 POST 一次）：禁用 JS 或用 curl 的访问不会被统计；`rangeUv` 是「按天去重后求和」，跨天同一访客会重复计入（`totalUv` 才是全站去重）。
 - SEO 的 meta/OG 是**前端运行时改 DOM**：Google/Bing 能跑 JS，但大部分社交平台抓取卡片时不执行 JS（只会看到 `public/index.html` 的静态兜底）。要分享卡片精确到文章，后续需要预渲染（prerender）或把 `/post/:id` 做成服务端渲染页。
 - `/sitemap.xml`、`/robots.txt` 由后端提供，nginx 必须按 `deploy/nginx/blog-site.conf` 里新增的两个 location 反代到后端，否则线上拿不到。
+- 评论回复只做**两级**（回复的回复也挂到同一顶层下，用 `reply_to_nickname` 表明对象）；如需无限层级嵌套要改表和前端渲染。
+- 删除顶层评论会连带删掉别人的回复（线程归属顶层作者），前端确认框已提示；如果以后想「保留回复只删顶层」，需要把回复的 `parent_id` 重新指向或允许孤儿回复。
+- 点赞按访客标识去重：同一台设备换 UA / 清缓存 / 换 IP 就能重复点，属于轻量方案的已知边界（没有账号级风控）。
 - Element UI vendor 包 1.2MB（按需引入或 Vue3 迁移时一并解决）。
 - e2e 起后端时 `DB_PASSWORD` 必须加引号导出：密码含特殊字符，经 grep/cut 管道
   后未加引号会被 shell 拆坏（2026-08-31 踩坑：Access denied）。
@@ -319,3 +326,6 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 看板图表用纯 CSS 柱状图，不引 echarts（2026-09-11） | 只画「近 N 天 PV/UV 双柱 + hover 看数值」，引 echarts 会多 1MB 级依赖；Element UI 里没有现成图表，自己写 40 行 CSS 就够 |
 | SEO 分两半：后端出 sitemap/robots，前端改 meta（2026-09-11） | 后端能给出爬虫真正需要的「有哪些 URL」（sitemap 是静态 XML，最可靠）；而 per-page meta 在 SPA 里只能靠 JS 改 DOM，先把能做的做掉，预渲染等真有需求再上，避免过早引入 SSR 复杂度 |
 | sitemap 单独加 `selectPublishedBriefs` 而不复用 `selectPublishedAll`（2026-09-11） | 后者会把每篇正文（longtext）都读出来，只为生成几行 URL 不值得 |
+| 评论回复只做两级：`parent_id` 一律指向顶层评论（2026-09-11） | 个人博客不需要无限嵌套；两级在手机上可读性最好，前端渲染和后端排序都简单（列表接口直接按「顶层 + 紧跟其回复」返回，前端不用拼树） |
+| 点赞允许未登录，用访客标识去重（2026-09-11） | 访客随手点赞门槛最低；`comment_like(comment_id, visitor_key)` 复合主键让「再点即取消」实现干净，`like_count` 用 SQL 原子加减避免并发丢计数 |
+| 删除顶层评论连带删回复（2026-09-11） | 线程归属顶层作者，留一半回复会变成孤儿；前端确认框明确提示后果，站主在后台也有同样提示 |

@@ -127,9 +127,28 @@ CREATE TABLE `comment` (
   `user_id` int DEFAULT NULL COMMENT '发表评论的用户（空=旧游客评论）',
   `nickname` varchar(40) NOT NULL COMMENT '昵称',
   `content` varchar(2000) NOT NULL COMMENT '评论内容',
+  `parent_id` int DEFAULT NULL COMMENT '所属顶层评论（NULL=顶层评论，回复也挂在顶层下）',
+  `reply_to_nickname` varchar(40) DEFAULT NULL COMMENT '被回复者昵称（冗余，便于渲染「回复 @某某」）',
+  `like_count` int NOT NULL DEFAULT '0' COMMENT '点赞数',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
-  KEY `idx_article` (`article_id`)
+  KEY `idx_article` (`article_id`),
+  KEY `idx_parent` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `comment_like`（点赞去重：同一访客对同一评论只能点一次）
+--
+
+DROP TABLE IF EXISTS `comment_like`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `comment_like` (
+  `comment_id` int NOT NULL COMMENT '评论ID',
+  `visitor_key` varchar(48) NOT NULL COMMENT '访客标识：已登录为 u{用户ID}，未登录为 md5(IP+UA+盐)',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
+  PRIMARY KEY (`comment_id`,`visitor_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

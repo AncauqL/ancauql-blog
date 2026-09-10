@@ -80,25 +80,48 @@
           </h2>
 
           <div v-if="comments.length" class="comment-list">
-            <div v-for="c in comments" :key="c.id" class="comment-item">
+            <div
+                v-for="c in comments"
+                :key="c.id"
+                :class="['comment-item', { 'comment-item--reply': c.parentId }]"
+            >
               <div class="comment-head">
                 <span class="comment-name">{{ c.nickname }}</span>
+                <span v-if="c.replyToNickname" class="comment-reply-to">
+                  回复 <span class="comment-reply-name">@{{ c.replyToNickname }}</span>
+                </span>
                 <span class="comment-time">{{ formatTime(c.createTime) }}</span>
                 <button
                     v-if="canDelete(c)"
                     type="button"
                     class="comment-del"
-                    @click="removeComment(c.id)"
+                    @click="removeComment(c)"
                 >删除</button>
               </div>
               <div class="comment-text">{{ c.content }}</div>
+              <div class="comment-foot">
+                <button
+                    type="button"
+                    :class="['comment-action', { 'comment-action--on': c.liked }]"
+                    @click="toggleLike(c)"
+                >
+                  <icon-thumb-up :width="13" />
+                  {{ c.likeCount > 0 ? c.likeCount : '赞' }}
+                </button>
+                <button
+                    v-if="currentUser"
+                    type="button"
+                    class="comment-action"
+                    @click="startReply(c)"
+                >回复</button>
+              </div>
             </div>
           </div>
           <p v-else class="comments-empty">还没有评论，来抢个沙发～</p>
 
           <!-- 未登录：提示登录 -->
           <div v-if="!currentUser" class="comment-login-tip">
-            登录后可发表评论
+            登录后可发表评论（点赞无需登录）
             <a class="comment-login-link" @click="goLogin">去登录</a>
           </div>
 
@@ -113,11 +136,19 @@
                 tabindex="-1"
                 autocomplete="off"
             >
-            <div class="comment-as">以「{{ displayName }}」评论</div>
+            <div class="comment-as">
+              <template v-if="replyTarget">
+                以「{{ displayName }}」回复
+                <span class="comment-reply-name">@{{ replyTarget.nickname }}</span>
+                <a class="comment-cancel-reply" @click="cancelReply">取消回复</a>
+              </template>
+              <template v-else>以「{{ displayName }}」评论</template>
+            </div>
             <textarea
+                ref="commentBox"
                 v-model="commentText"
                 class="comment-textarea"
-                placeholder="说点什么…（最多 2000 字）"
+                :placeholder="replyTarget ? '回复 @' + replyTarget.nickname + '…' : '说点什么…（最多 2000 字）'"
                 maxlength="2000"
                 rows="4"
                 required
@@ -125,7 +156,7 @@
             <div class="comment-actions">
               <span class="comment-hint">理性发言，友善交流</span>
               <button type="submit" class="comment-submit" :disabled="submitting">
-                {{ submitting ? '提交中…' : '发表评论' }}
+                {{ submitting ? '提交中…' : (replyTarget ? '发表回复' : '发表评论') }}
               </button>
             </div>
           </form>
@@ -204,6 +235,7 @@ export default {
       currentUser: getStoredUser(),
       commentText: '',
       commentWebsite: '',
+      replyTarget: null,
       submitting: false
     }
   },
@@ -263,6 +295,7 @@ export default {
       this.comments = []
       this.commentText = ''
       this.commentWebsite = ''
+      this.replyTarget = null
       window.scrollTo(0, 0)
     },
     load() {
@@ -354,12 +387,14 @@ export default {
       request.post('/comment', {
         articleId: this.article.id,
         content: text,
+        parentId: this.replyTarget ? this.replyTarget.parentId : null,
         website: this.commentWebsite
       }).then(res => {
         if (res.code === '200') {
-          this.$message.success('评论成功')
+          this.$message.success(this.replyTarget ? '回复成功' : '评论成功')
           this.commentText = ''
           this.commentWebsite = ''
+          this.replyTarget = null
           this.loadComments(this.article.id)
         } else {
           this.$message.error(res.msg || '发表失败')
@@ -369,6 +404,41 @@ export default {
       }).finally(() => {
         this.submitting = false
       })
+    },
+    /** 点赞 / 取消点赞（无需登录，后端按访客标识去重） */
+    toggleLike(c) {
+      if (c.liking) {
+        return
+      }
+      this.$set(c, 'liking', true)
+      request.post('/comment/like', { commentId: c.id }).then(res => {
+        if (res.code === '200' && res.data) {
+          c.likeCount = res.data.likeCount
+          c.liked = res.data.liked
+        } else {
+          this.$message.error(res.msg || '操作失败')
+        }
+      }).catch(() => {
+        this.$message.error('网络错误，请稍后再试')
+      }).finally(() => {
+        this.$set(c, 'liking', false)
+      })
+    },
+    /** 点「回复」：记录目标（顶层评论 id + 昵称），并把焦点移到输入框 */
+    startReply(c) {
+      this.replyTarget = {
+        parentId: c.parentId ? c.parentId : c.id,
+        nickname: c.nickname
+      }
+      this.$nextTick(() => {
+        const box = this.$refs.commentBox
+        if (box && box.focus) {
+          box.focus()
+        }
+      })
+    },
+    cancelReply() {
+      this.replyTarget = null
     },
     canDelete(c) {
       const u = this.currentUser
@@ -380,12 +450,19 @@ export default {
       }
       return !!c.userId && Number(c.userId) === Number(u.id)
     },
-    removeComment(id) {
-      this.$confirm('确定删除这条评论吗？', '提示', { type: 'warning' })
+    removeComment(c) {
+      const isRoot = !c.parentId
+      const tip = isRoot
+          ? '确定删除这条评论吗？它下面的回复也会一起删除。'
+          : '确定删除这条回复吗？'
+      this.$confirm(tip, '提示', { type: 'warning' })
         .then(() => {
-          request.delete('/comment/delete?id=' + id).then(res => {
+          request.delete('/comment/delete?id=' + c.id).then(res => {
             if (res.code === '200') {
               this.$message.success('已删除')
+              if (this.replyTarget && this.replyTarget.parentId === c.id) {
+                this.replyTarget = null
+              }
               this.loadComments(this.article.id)
             } else {
               this.$message.error(res.msg || '删除失败')
@@ -727,6 +804,54 @@ a.tag-link:hover {
 .comment-item {
   padding: 12px 0;
   border-bottom: 1px dashed #f0f1f3;
+}
+/* 回复：缩进 + 左侧竖线，形成两级结构 */
+.comment-item--reply {
+  margin-left: 28px;
+  padding-left: 14px;
+  border-left: 2px solid #f0f1f3;
+}
+.comment-reply-to {
+  font-size: 12px;
+  color: #a0a3a8;
+}
+.comment-reply-name {
+  color: #6b7280;
+}
+.comment-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+.comment-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: #a0a3a8;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.comment-action:hover {
+  color: #1f1e33;
+}
+.comment-action--on {
+  color: #1f1e33;
+  font-weight: 600;
+}
+.comment-cancel-reply {
+  margin-left: 10px;
+  font-size: 12px;
+  color: #a0a3a8;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.comment-cancel-reply:hover {
+  color: #1f1e33;
 }
 .comment-head {
   display: flex;

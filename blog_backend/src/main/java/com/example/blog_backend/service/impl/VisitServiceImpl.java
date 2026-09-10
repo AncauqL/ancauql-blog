@@ -1,6 +1,7 @@
 package com.example.blog_backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.blog_backend.common.VisitorKeyUtil;
 import com.example.blog_backend.dto.DailyVisit;
 import com.example.blog_backend.dto.TopArticle;
 import com.example.blog_backend.dto.VisitDashboard;
@@ -13,8 +14,6 @@ import com.example.blog_backend.service.IVisitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -176,25 +175,8 @@ public class VisitServiceImpl implements IVisitService {
         return false;
     }
 
-    /** 访客标识：md5(IP + UA + 盐)，不保存原始 IP */
+    /** 访客标识：与评论点赞共用 VisitorKeyUtil（md5(IP + UA + 盐)，不保存原始 IP） */
     private String visitorKey(String ip, String userAgent) {
-        String raw = (ip == null ? "" : ip) + '|' + userAgent + '|' + SALT;
-        try {
-            MessageDigest digest = MessageDigest.getInstance("MD5");
-            byte[] bytes = digest.digest(
-                    raw.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(bytes.length * 2);
-            for (byte b : bytes) {
-                String hex = Integer.toHexString(b & 0xFF);
-                if (hex.length() == 1) {
-                    sb.append('0');
-                }
-                sb.append(hex);
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            // 理论上不会发生；退化成 UA 的 hashCode，保证不影响访问
-            return String.format("%032x", raw.hashCode());
-        }
+        return VisitorKeyUtil.of(null, ip, userAgent);
     }
 }
