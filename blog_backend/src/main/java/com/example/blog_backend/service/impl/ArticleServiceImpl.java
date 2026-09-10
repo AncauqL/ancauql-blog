@@ -143,8 +143,32 @@ public class ArticleServiceImpl implements IArticleService {
         return result;
     }
 
-    /** 给列表结果批量回填标签名（避免 N+1 查询） */
-    private void attachTags(List<Article> articles) {
+    @Override
+    public IPage<Article> selectSearchPage(Integer pageNum, Integer pageSize,
+                                           String keyword, boolean onlyPublished) {
+        Page<Article> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        // 列表不返回正文大字段（正文只参与匹配，不参与返回）
+        wrapper.select(Article.class,
+                info -> !"content".equals(info.getColumn()));
+        if (onlyPublished) {
+            wrapper.eq(Article::getStatus, "published");
+        }
+        String kw = keyword == null ? "" : keyword.trim();
+        if (!kw.isEmpty()) {
+            // 标题 / 摘要 / 正文 任一命中（OR 分组，避免与外层状态条件串味）
+            wrapper.and(w -> w.like(Article::getTitle, kw)
+                    .or().like(Article::getSummary, kw)
+                    .or().like(Article::getContent, kw));
+        }
+        wrapper.orderByDesc(Article::getCreateTime);
+        wrapper.orderByDesc(Article::getId);
+        IPage<Article> result = articleMapper.selectPage(page, wrapper);
+        attachTags(result.getRecords());
+        return result;
+    }
+
+    /** 给列表结果批量回填标签名（避免 N+1 查询） */    private void attachTags(List<Article> articles) {
         if (articles == null || articles.isEmpty()) {
             return;
         }

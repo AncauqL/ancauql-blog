@@ -41,6 +41,13 @@ public interface IArticleService {
     IPage<Article> selectPublishedPage(Integer pageNum, Integer pageSize,
                            String articleTitle, Integer categoryId,
                            Integer tagId);
+    /**
+     * 站内搜索分页：关键词同时匹配标题 / 摘要 / 正文，按创建时间倒序。
+     * 列表不返回 content 字段；onlyPublished=true 时只搜已发布文章（访客视角）。
+     */
+    IPage<Article> selectSearchPage(Integer pageNum, Integer pageSize,
+                                    String keyword, boolean onlyPublished);
+
     void insert(Article article);
     void update(Article article);
     void delete(Integer id);

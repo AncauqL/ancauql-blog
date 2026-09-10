@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-10（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、用户体系 USER、admin 邮箱登录与账号设置、AboutMe 后台可编辑、上线安全硬化（代码侧，见 §11-⑥）；本批：**标签系统**——`tag`/`article_tag` 两表、`/tag` 接口、文章挂标签（编辑器多选可新建）、后台标签管理页、首页标签筛选（`/?tag=id`）、详情页与列表标签展示）
+最后更新：2026-09-10（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、用户体系 USER、admin 邮箱登录与账号设置、AboutMe 后台可编辑、上线安全硬化（代码侧，见 §11-⑥）、**标签系统**；本批：**站内搜索升级**——`GET /article/search` 分页搜标题/摘要/正文（列表不含 content），新增 `/search` 结果页（关键词高亮、加载更多），顶栏 Ctrl+K 覆盖层改走新接口并支持「查看全部结果」）
 
 ---
 
@@ -41,7 +41,7 @@ AncauqL_blog/
 │     ├─ utils/markdown.js    ← Markdown 渲染管线（渲染/高亮/消毒/字数统计），渲染必须复用它
 │     ├─ assets/css/markdown.css ← 正文排版样式（markdown.js 引入，详情页+编辑器共用）
 │     ├─ router/index.js      ← 路由 + 登录/角色守卫 + meta.layout
-│     └─ views/               ← HomeView / Archive / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / AboutMe / AboutEditor / AccountSettings / User / Login / Register
+│     └─ views/               ← HomeView / Archive / SearchView / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / AboutMe / AboutEditor / AccountSettings / User / Login / Register
 └─ database/blog_system.sql   ← 主库脚本（含种子数据）
 ```
 
@@ -68,7 +68,8 @@ AncauqL_blog/
     - 路由全部前台化：`/post/:id` 详情、`/archive`、`/aboutme`、`/login` 均无管理布局
     - 移动端 ≤640px 适配（导航收纳、封面缩小）
   - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
-- [ ] **M4 长期增强**：统计、搜索、站点配置表（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10）
+- [ ] **M4 长期增强**：统计、站点配置表（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10；站内搜索 ✅ 2026-09-10）
+- 站内搜索（2026-09-10 完成）：新接口 `GET /article/search`（标题/摘要/正文三处匹配，分页，列表不含 content，游客只搜已发布、管理员能搜到草稿）；前台新增 `/search?q=` 结果页（命中关键词高亮、分类/时间/标签、加载更多）；顶栏 Ctrl+K 覆盖层改为「前 6 条预览 + 查看全部 N 条结果 →」，回车直接进结果页；高亮用切片段渲染，不碰 v-html
 - 标签系统（2026-09-10 完成）：`tag` + `article_tag` 两表（多对多）；`/tag` 接口（公开读、管理员写，重名/空名给出中文报错）；文章可挂多个标签（编辑器多选，可直接输入新名字回车即建）；后台「标签管理」页（`/tag`）增删改 + 各标签已发布文章数；首页标签筛选条（写进地址栏 `/?tag=id`，详情页标签可点进来）；首页卡片、文章管理列表、详情页均显示标签；标签按已发布文章计数（草稿不计）
 - 体验/工程细节（2026-09-03 完成）：文章可后台“置顶”(is_top)→首页“置顶”大卡；优雅 404 页；文章图片懒加载；时间解析统一到 `utils/datetime.js`；归档条目改 `<router-link>`；`API_BASE` 走 `.env`(VUE_APP_API_BASE，见 .env.example)；前台阅读缩放(1.1，正文详情页再 1.1)
 - 评论系统（2026-09-09 完成）：自建轻量评论——`comment` 表、详情页评论区（即发即显）、蜜罐字段 + IP 限流、后台“评论管理”页（列表/删除/跳原文）
@@ -169,6 +170,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | POST /auth/register | 公开 | 注册普通用户(USER)：email/nickname/password + 蜜罐 website + IP 限流；成功即登录 |
 | GET /auth/me · POST /auth/logout | 任意登录 | 仅需登录(USER 亦可)；Token 在内存，重启失效 |
 | POST /auth/profile | 任意登录 | 自助绑/改邮箱、改密码：`email`+`currentPassword`+`newPassword?`；验当前密码，邮箱全站唯一 |
+| GET /article/search | 公开* | 站内搜索分页：pageNum=1, pageSize=10, keyword（必填，空关键词返回空页）；关键词同时匹配**标题/摘要/正文**；游客只搜已发布(仅 published)，管理员可搜到草稿；按 create_time desc, id desc；不含 content；records 带 `tagNames` |
 | GET /article/selectAll | 公开* | 游客只见 published；管理员见全部（旧接口，新代码请用 selectPage） |
 | GET /article/selectPage | 公开* | 参数全可选：pageNum=1, pageSize=10, articleTitle, status（status 仅管理员生效，游客恒 published）, categoryId, tagId（按标签筛选，命中 article_tag）；按 is_top desc, create_time desc, id desc；不含 content；records 额外带 `tagNames` |
 | GET /article/detail?id= | 公开* | 草稿仅管理员可见(403)；游客访问已发布文章时 view_count 原子 +1，管理员预览不计数 |
@@ -265,7 +267,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 ## 12. 已知问题 / 技术债（接手时先看这里）
 
 - Token 存后端内存，重启即掉线。
-- `selectAll` / `selectSearch` 旧接口仍返回全文 content，前端已不用于列表，暂留兼容。
+- `selectAll` / `selectSearch` 旧接口仍返回全文 content（前端已改用 `/article/search` 与 `selectPage`），暂留兼容。
+- 站内搜索用 `LIKE '%kw%'` 匹配标题/摘要/正文，正文为 longtext 全表扫；文章上千篇后需要换 MySQL FULLTEXT 或外部索引。关键词里的 `%` / `_` 未转义（只影响匹配范围，无注入风险）。
 - 编辑器左右分栏无滚动同步（体验项，有空再做）。
 - uploads 目录无孤儿图片清理机制（文章删了图还在，暂不处理）。
 - Element UI vendor 包 1.2MB（按需引入或 Vue3 迁移时一并解决）。
@@ -290,3 +293,5 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 标签用两张表 + 前端按名字反查 id（2026-09-10） | 多对多必须走关联表，删标签要顺手清关联；详情页只回标签名（够展示），点标签筛选再按 `/tag/selectAll` 映射回 id，避免为少数场景改接口结构 |
 | 首页标签筛选写进地址栏 `?tag=id`（2026-09-10） | 筛选结果可分享/可回退；详情页标签直接链到首页该标签，省一个独立的标签页 |
 | 文章保存时按“传了 tagIds 才更新标签”语义（2026-09-10） | 后台列表的“置顶/取消置顶”只 POST `{id, top}`，若不判断就会把文章标签清空 |
+| 搜索单独开 `GET /article/search` 而不是扩 `selectPage`（2026-09-10） | selectPage 的 `articleTitle` 语义是「只搜标题」，两者混在一起会让列表接口越来越难懂；搜索要正文匹配且结果页更重，独立接口能各自演进 |
+| 搜索结果页高亮用「切片段 + v-for 渲染 span」而不是 `v-html`（2026-09-10） | 铁律禁止未消毒的 v-html；切片段天然不解析 HTML，正文再脏也只会当纯文本显示 |

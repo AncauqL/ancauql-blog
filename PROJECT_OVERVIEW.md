@@ -77,7 +77,7 @@ AncauqL_blog/
 
 ### 访客侧页面
 
-前台使用独立布局（`FrontLayout`，墨白极简设计）：固定顶部导航（滚动 >20px 加毛玻璃背景；含文章 / 归档 / 关于 + 搜索 + 极简登录入口）+ 页脚 + 回到顶部按钮；移动端为右侧滑入全屏菜单；全局搜索覆盖层（Ctrl+K 打开、ESC 关闭、300ms 防抖走后端标题模糊查）。样式基于 Tailwind 工具类 + 自托管 Inter 字体。
+前台使用独立布局（`FrontLayout`，墨白极简设计）：固定顶部导航（滚动 >20px 加毛玻璃背景；含文章 / 归档 / 关于 + 搜索 + 极简登录入口）+ 页脚 + 回到顶部按钮；移动端为右侧滑入全屏菜单；全局搜索覆盖层（Ctrl+K 打开、ESC 关闭、300ms 防抖走后端站内搜索，展示前 6 条并可「查看全部结果」→ 跳 `/search`）。样式基于 Tailwind 工具类 + 自托管 Inter 字体。
 
 - 首页：`/`
   - Hero 区：大标题（“思考，记录，然后遗忘。”，末段刻意用 `text-neutral-300` 灰色）+ 描述 + 双 CTA 按钮 + 三组统计数字（文章数 / 总阅读来自 `/article/stats`，写作年数按建站年份计算）。
@@ -103,6 +103,10 @@ AncauqL_blog/
   - 管理员查看草稿时显示“草稿预览”标记。
 - 归档页：`/archive`
   - 请求 `/article/archive`，按年份分组展示全部已发布文章（倒序）。
+- 搜索结果页：`/search?q=关键词`
+  - 请求 `/article/search`，关键词同时匹配**标题 / 摘要 / 正文**，服务端分页 + 「加载更多」。
+  - 命中关键词在标题与摘要里高亮（切片段渲染成纯文本 span，不解析 HTML）。
+  - 每条结果展示分类、日期与标签；关键词写进地址栏，可分享、可前进后退；顶栏覆盖层回车直达本页。
 - 关于我：`/aboutme`
   - 极简风格详情页，内容全部来自 `config/site.js` 的 `profile`（姓名 / 身份 / motto / bio / skills / interests / favorites / journey）。空版块自动隐藏，往数组里填数据即可扩展；目前占位内容待站主日后补充。
 - 404 页：访问不存在的路径显示简洁 404（`/` 兜底路由，不再白屏）。
@@ -196,7 +200,11 @@ AncauqL_blog/
 - `GET /article/selectAll`：查询全部文章。
 - `GET /article/detail?id=文章ID`：按 ID 查询文章详情；游客访问已发布文章时阅读数 +1。
 - `GET /article/neighbors?id=文章ID`：查询上一篇 / 下一篇（按发布时间排序，仅返回已发布文章的 id 和标题）。
-- `GET /article/selectSearch?articleTitle=关键词`：按标题模糊搜索（旧接口，新代码建议用 selectPage）。
+- `GET /article/search?keyword=关键词&pageNum=1&pageSize=10`：站内搜索（公开）。
+  - 关键词同时匹配标题 / 摘要 / 正文（任一命中即可）；关键词为空时返回空页，不会退化成全站列表。
+  - 游客只能搜到已发布文章，管理员登录后还能搜到草稿（便于找旧稿）。
+  - 按创建时间倒序、id 倒序；**同样不返回 content**，每条记录带 `tagNames`。
+- `GET /article/selectSearch?articleTitle=关键词`：按标题模糊搜索（旧接口，返回全文，建议改用 `/article/search`）。
 - `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词&status=状态&categoryId=分类ID&tagId=标签ID`：分页查询。
   - 所有参数可选（pageNum 默认 1，pageSize 默认 10）。
   - 按置顶优先、创建时间倒序、id 倒序排列；**返回结果不含 content 大字段**，正文用 detail 单查。
@@ -406,7 +414,8 @@ npm run build
 - 正文与封面中的站内图片存**相对路径** `/uploads/...`，前端渲染时拼接 `request.js` 导出的 `API_BASE`；部署换域名只改一处。
 - 站点信息集中在 `src/config/site.js`：站点名 / slogan / identity / 首页简介 `aboutLines` / 详情页个人资料 `profile` / 肖像 `portrait` / 社交链接 `socials` / 备案号。社交入口与页脚图标均由这份配置驱动，留空的项自动隐藏。
 - RSS 订阅源 `/feed.xml` 的站点标题与前台基址配置在后端 `application.yml` 的 `blog.site-title` / `blog.site-url`（站点地址可用环境变量 `BLOG_SITE_URL` 覆盖）。
-- 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容。
+- 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容（站内搜索已改用 `/article/search`）。
+- 站内搜索当前用 `LIKE '%关键词%'` 扫标题/摘要/正文，文章量上千后建议换 MySQL 全文索引或外部检索。
 - 标签：`/tag/selectAll` 公开读，写操作（新增/改名/删除）需管理员；文章通过 `article_tag` 关联多个标签，标签计数只统计已发布文章；首页支持 `/?tag=标签ID` 直达筛选。
 - 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。

@@ -1,6 +1,7 @@
 
 package com.example.blog_backend.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.blog_backend.common.AuthContext;
 import com.example.blog_backend.common.Result;
 import com.example.blog_backend.entity.Article;
@@ -72,6 +73,21 @@ public class ArticleController {
     @GetMapping("/stats")
     public Result stats() {
         return Result.success(articleService.selectStats());
+    }
+
+    // 站内搜索：关键词匹配标题/摘要/正文；游客只搜已发布，管理员可搜全部（含草稿）
+    @GetMapping("/search")
+    public Result search(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        String kw = keyword == null ? "" : keyword.trim();
+        if (kw.isEmpty()) {
+            // 空关键词不返回全站文章，避免误用成列表接口
+            return Result.success(new Page<>(pageNum, pageSize));
+        }
+        return Result.success(articleService.selectSearchPage(pageNum,
+                pageSize, kw, !AuthContext.isManager()));
     }
 
     // 分页查询（articleTitle / status / categoryId / tagId 均可选；status 仅对管理员生效）

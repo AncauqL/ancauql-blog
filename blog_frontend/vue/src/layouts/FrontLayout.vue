@@ -116,14 +116,16 @@
               ref="searchInput"
               v-model="searchQuery"
               type="text"
-              placeholder="搜索文章…"
+              placeholder="搜索文章…（标题 / 摘要 / 正文）"
               class="flex-1 px-3 text-sm outline-none placeholder:text-neutral-400 bg-transparent"
               @input="handleSearch"
+              @keyup.enter="goSearchPage"
             >
             <kbd class="hidden sm:inline text-[10px] font-medium text-neutral-400 border border-neutral-200 rounded px-1.5 py-0.5">ESC</kbd>
           </div>
           <div class="max-h-72 overflow-y-auto">
             <div v-if="!searchQuery.trim()" class="px-5 py-8 text-center text-sm text-neutral-400">输入关键词开始搜索</div>
+            <div v-else-if="searchLoading" class="px-5 py-8 text-center text-sm text-neutral-400">搜索中…</div>
             <div v-else-if="searchResults.length === 0" class="px-5 py-8 text-center text-sm text-neutral-400">没有找到相关文章</div>
             <a
               v-for="item in searchResults"
@@ -139,6 +141,14 @@
               <icon-arrow-right :width="14" class="text-neutral-300 group-hover:text-neutral-500 transition-colors shrink-0 ml-4" />
             </a>
           </div>
+          <button
+            v-if="searchQuery.trim() && searchResults.length > 0"
+            class="w-full flex items-center justify-center gap-1.5 h-11 text-xs font-medium text-neutral-500 hover:text-neutral-900 border-t border-neutral-100 transition-colors"
+            @click="goSearchPage"
+          >
+            查看全部 {{ searchTotal }} 条结果
+            <icon-arrow-right :width="13" />
+          </button>
         </div>
       </div>
     </div>
@@ -198,6 +208,8 @@ export default {
       categoryList: [],
       searchQuery: '',
       searchResults: [],
+      searchTotal: 0,
+      searchLoading: false,
       searchTimer: null
     }
   },
@@ -324,9 +336,11 @@ export default {
       document.body.style.overflow = ''
       this.searchQuery = ''
       this.searchResults = []
+      this.searchTotal = 0
+      this.searchLoading = false
     },
     handleSearch() {
-      // 实时过滤：300ms 防抖走后端标题模糊查（游客恒为已发布）
+      // 实时预览：300ms 防抖走后端站内搜索（标题/摘要/正文；游客恒为已发布）
       if (this.searchTimer) {
         clearTimeout(this.searchTimer)
       }
@@ -334,16 +348,30 @@ export default {
         const query = this.searchQuery.trim()
         if (!query) {
           this.searchResults = []
+          this.searchTotal = 0
+          this.searchLoading = false
           return
         }
-        request.get('/article/selectPage', {
-          params: { pageNum: 1, pageSize: 20, articleTitle: query, status: 'published' }
+        this.searchLoading = true
+        request.get('/article/search', {
+          params: { keyword: query, pageNum: 1, pageSize: 6 }
         }).then(res => {
           if (res.code === '200') {
             this.searchResults = (res.data && res.data.records) || []
+            this.searchTotal = (res.data && res.data.total) || 0
           }
-        }).catch(() => {})
+        }).catch(() => {}).finally(() => {
+          this.searchLoading = false
+        })
       }, 300)
+    },
+    goSearchPage() {
+      const query = this.searchQuery.trim()
+      if (!query) {
+        return
+      }
+      this.closeSearchPanel()
+      this.$router.push({ path: '/search', query: { q: query } }).catch(() => {})
     },
     goPost(id) {
       this.closeSearchPanel()
