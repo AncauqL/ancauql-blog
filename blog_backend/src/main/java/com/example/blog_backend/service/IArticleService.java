@@ -28,18 +28,19 @@ public interface IArticleService {
     SiteStats selectStats();
 
     /**
-     * 管理端分页：可按标题模糊、状态精确、分类精确过滤。
-     * 按创建时间倒序；列表不返回 content 字段（正文过大，编辑时用 detail 单查）。
+     * 管理端分页：可按标题模糊、状态精确、分类/标签过滤。
+     * 按置顶优先、创建时间倒序；列表不返回 content 字段。
      */
     IPage<Article> selectPage(Integer pageNum, Integer pageSize,
                            String articleTitle, String status,
-                           Integer categoryId);
+                           Integer categoryId, Integer tagId);
 
     /**
      * 访客分页：只返回已发布文章，其余同 selectPage。
      */
     IPage<Article> selectPublishedPage(Integer pageNum, Integer pageSize,
-                           String articleTitle, Integer categoryId);
+                           String articleTitle, Integer categoryId,
+                           Integer tagId);
     void insert(Article article);
     void update(Article article);
     void delete(Integer id);

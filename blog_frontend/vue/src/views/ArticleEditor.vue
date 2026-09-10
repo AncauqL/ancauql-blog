@@ -57,6 +57,22 @@
               :value="item.id"
           />
         </el-select>
+        <el-select
+            v-model="form.tagIds"
+            class="meta-tags"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="选择或输入标签（回车新建）"
+        >
+          <el-option
+              v-for="item in tagList"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+          />
+        </el-select>
         <el-input
             v-model="form.summary"
             placeholder="摘要（列表页展示，建议填写）"
@@ -149,6 +165,7 @@ export default {
     return {
       form: this.emptyForm(),
       categoryList: [],
+      tagList: [],
       previewSource: '',
       previewTimer: null,
       autosaveTimer: null,
@@ -193,6 +210,7 @@ export default {
   },
   created() {
     this.loadCategories()
+    this.loadTags()
     this.init()
   },
   beforeDestroy() {
@@ -217,6 +235,7 @@ export default {
         content: '',
         cover: '',
         categoryId: null,
+        tagIds: [],
         userId: 1,
         status: 'draft',
         top: false,
@@ -231,6 +250,8 @@ export default {
         request.get('/article/detail', { params: { id } }).then(res => {
           if (res.code === '200') {
             this.form = { ...res.data }
+            // 老数据可能没有 tagIds 字段，统一成数组，避免多选框为 null
+            this.form.tagIds = res.data.tagIds || []
             this.previewSource = this.form.content || ''
             this.savedSnapshot = JSON.stringify(this.form)
             this.tryRestoreDraft()
@@ -251,6 +272,37 @@ export default {
         if (res.code === '200') {
           this.categoryList = res.data || []
         }
+      })
+    },
+    loadTags() {
+      request.get('/tag/selectAll').then(res => {
+        if (res.code === '200') {
+          this.tagList = res.data || []
+        }
+      })
+    },
+    /** 编辑器里新输入的标签是名字（字符串），保存前先建标签换成 id */
+    ensureTagIds() {
+      const selected = this.form.tagIds || []
+      const ids = selected.filter(item => typeof item === 'number')
+      const names = selected
+          .filter(item => typeof item === 'string')
+          .map(name => name.trim())
+          .filter(name => name)
+      if (names.length === 0) {
+        this.form.tagIds = ids
+        return Promise.resolve()
+      }
+      return Promise.all(names.map(name => {
+        return request.post('/tag', { name }).then(res => {
+          if (res.code !== '200') {
+            throw new Error(res.msg || '标签创建失败')
+          }
+          return res.data.id
+        })
+      })).then(newIds => {
+        this.form.tagIds = ids.concat(newIds)
+        this.loadTags()
       })
     },
 
@@ -311,33 +363,36 @@ export default {
         return
       }
       this.saving = true
-      request.post('/article', this.form).then(res => {
-        if (res.code !== '200') {
-          this.$message.error(res.msg || '保存失败')
-          return
-        }
-        this.$message.success(this.form.status === 'published'
-            ? '已保存并发布' : '草稿已保存到服务器')
-        this.clearDraft()
-        const isNew = !this.form.id
-        if (res.data && res.data.id) {
-          this.form.id = res.data.id
-        }
-        this.savedSnapshot = JSON.stringify(this.form)
-        if (backAfterSave) {
-          this.skipLeaveGuard = true
-          this.$router.push('/article')
-        } else if (isNew && this.form.id) {
-          // 新文章保存后把地址换成 /article/edit/{id}，刷新不丢
-          this.skipLeaveGuard = true
-          this.$router.replace('/article/edit/' + this.form.id)
-          this.$nextTick(() => {
-            this.skipLeaveGuard = false
-            this.savedSnapshot = JSON.stringify(this.form)
-          })
-        }
-      }).catch(() => {
-        this.$message.error('保存失败，请检查后端服务')
+      this.ensureTagIds().then(() => {
+        return request.post('/article', this.form).then(res => {
+          if (res.code !== '200') {
+            this.$message.error(res.msg || '保存失败')
+            return
+          }
+          this.$message.success(this.form.status === 'published'
+              ? '已保存并发布' : '草稿已保存到服务器')
+          this.clearDraft()
+          const isNew = !this.form.id
+          if (res.data && res.data.id) {
+            this.form.id = res.data.id
+          }
+          this.savedSnapshot = JSON.stringify(this.form)
+          if (backAfterSave) {
+            this.skipLeaveGuard = true
+            this.$router.push('/article')
+          } else if (isNew && this.form.id) {
+            // 新文章保存后把地址换成 /article/edit/{id}，刷新不丢
+            this.skipLeaveGuard = true
+            this.$router.replace('/article/edit/' + this.form.id)
+            this.$nextTick(() => {
+              this.skipLeaveGuard = false
+              this.savedSnapshot = JSON.stringify(this.form)
+            })
+          }
+        })
+      }).catch(err => {
+        this.$message.error(err && err.message
+            ? err.message : '保存失败，请检查后端服务')
       }).finally(() => {
         this.saving = false
       })
@@ -549,6 +604,15 @@ export default {
 
 .meta-category {
   width: 180px;
+}
+
+.meta-tags {
+  width: 280px;
+}
+
+.meta-tags >>> .el-select__tags {
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .meta-summary {

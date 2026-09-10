@@ -11,6 +11,7 @@ import com.example.blog_backend.dto.SiteStats;
 import com.example.blog_backend.entity.Article;
 import com.example.blog_backend.mapper.ArticleMapper;
 import com.example.blog_backend.service.IArticleService;
+import com.example.blog_backend.service.ITagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,9 @@ public class ArticleServiceImpl implements IArticleService {
 
     @Autowired
     private ArticleMapper articleMapper;
+
+    @Autowired
+    private ITagService tagService;
 
     @Override
     public List<Article> selectAll() {
@@ -38,7 +42,12 @@ public class ArticleServiceImpl implements IArticleService {
 
     @Override
     public Article selectById(Integer id) {
-        return articleMapper.selectById(id);
+        Article article = articleMapper.selectById(id);
+        if (article != null) {
+            article.setTagIds(tagService.selectTagIdsByArticle(id));
+            article.setTagNames(tagService.selectTagNamesByArticle(id));
+        }
+        return article;
     }
 
     @Override
@@ -110,23 +119,44 @@ public class ArticleServiceImpl implements IArticleService {
     @Override
     public IPage<Article> selectPage(Integer pageNum, Integer
             pageSize, String articleTitle, String status,
-            Integer categoryId) {
+            Integer categoryId, Integer tagId) {
         Page<Article> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Article> wrapper =
-                listWrapper(articleTitle, categoryId);
+                listWrapper(articleTitle, categoryId, tagId);
         wrapper.eq(status != null && !"".equals(status),
                 Article::getStatus, status);
-        return articleMapper.selectPage(page, wrapper);
+        IPage<Article> result = articleMapper.selectPage(page, wrapper);
+        attachTags(result.getRecords());
+        return result;
     }
 
     @Override
     public IPage<Article> selectPublishedPage(Integer pageNum, Integer
-            pageSize, String articleTitle, Integer categoryId) {
+            pageSize, String articleTitle, Integer categoryId,
+            Integer tagId) {
         Page<Article> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Article> wrapper =
-                listWrapper(articleTitle, categoryId);
+                listWrapper(articleTitle, categoryId, tagId);
         wrapper.eq(Article::getStatus, "published");
-        return articleMapper.selectPage(page, wrapper);
+        IPage<Article> result = articleMapper.selectPage(page, wrapper);
+        attachTags(result.getRecords());
+        return result;
+    }
+
+    /** 给列表结果批量回填标签名（避免 N+1 查询） */
+    private void attachTags(List<Article> articles) {
+        if (articles == null || articles.isEmpty()) {
+            return;
+        }
+        List<Integer> ids = articles.stream()
+                .map(Article::getId)
+                .collect(java.util.stream.Collectors.toList());
+        java.util.Map<Integer, List<String>> names =
+                tagService.selectNamesByArticleIds(ids);
+        for (Article article : articles) {
+            List<String> tags = names.get(article.getId());
+            article.setTagNames(tags == null ? new ArrayList<>() : tags);
+        }
     }
 
     @Override
@@ -180,7 +210,8 @@ public class ArticleServiceImpl implements IArticleService {
      * - 创建时间倒序，同时间按 id 倒序兜底
      */
     private LambdaQueryWrapper<Article> listWrapper(String articleTitle,
-                                                    Integer categoryId) {
+                                                    Integer categoryId,
+                                                    Integer tagId) {
         LambdaQueryWrapper<Article> wrapper = new
                 LambdaQueryWrapper<>();
         wrapper.select(Article.class,
@@ -188,6 +219,12 @@ public class ArticleServiceImpl implements IArticleService {
         wrapper.like(!"".equals(articleTitle) && articleTitle != null,
                 Article::getTitle, articleTitle);
         wrapper.eq(categoryId != null, Article::getCategoryId, categoryId);
+        // 标签过滤：命中 article_tag 关联的文章
+        if (tagId != null) {
+            wrapper.inSql(Article::getId,
+                    "select article_id from article_tag where tag_id = "
+                            + tagId);
+        }
         // 置顶优先，再按创建时间倒序（同时间按 id 倒序兜底）
         wrapper.orderByDesc(Article::getTop);
         wrapper.orderByDesc(Article::getCreateTime);
@@ -198,15 +235,23 @@ public class ArticleServiceImpl implements IArticleService {
     @Override
     public void insert(Article article) {
         articleMapper.insert(article);
+        if (article.getTagIds() != null) {
+            tagService.saveArticleTags(article.getId(), article.getTagIds());
+        }
     }
 
     @Override
     public void update(Article article) {
         articleMapper.updateById(article);
+        // 只有显式传了 tagIds 才更新标签（避免“仅置顶”这类局部更新清空标签）
+        if (article.getTagIds() != null) {
+            tagService.saveArticleTags(article.getId(), article.getTagIds());
+        }
     }
 
     @Override
     public void delete(Integer id) {
         articleMapper.deleteById(id);
+        tagService.saveArticleTags(id, new ArrayList<>());
     }
 }

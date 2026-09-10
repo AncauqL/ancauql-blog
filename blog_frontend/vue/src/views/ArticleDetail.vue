@@ -31,6 +31,18 @@
           {{ article.summary }}
         </p>
 
+        <div v-if="article.tagNames && article.tagNames.length" class="tag-row">
+          <template v-for="name in article.tagNames">
+            <router-link
+                v-if="tagIdOf(name) !== null"
+                :key="'tag-' + name"
+                :to="{ path: '/', query: { tag: String(tagIdOf(name)) } }"
+                class="tag-link"
+            >#{{ name }}</router-link>
+            <span v-else :key="'tag-plain-' + name" class="tag-link">#{{ name }}</span>
+          </template>
+        </div>
+
         <div
             ref="content"
             class="markdown-body"
@@ -175,6 +187,7 @@ export default {
     return {
       article: null,
       categoryList: [],
+      tagList: [],
       loaded: false,
       errorText: '文章不存在',
       neighbors: {
@@ -231,6 +244,7 @@ export default {
   created() {
     this.load()
     this.loadCategories()
+    this.loadTags()
   },
   beforeDestroy() {
     this.disconnectObserver()
@@ -292,6 +306,18 @@ export default {
           this.categoryList = res.data || []
         }
       }).catch(() => {})
+    },
+    loadTags() {
+      // 文章详情只带标签名，点标签筛选需要 id，这里按名字反查
+      request.get('/tag/selectAll').then(res => {
+        if (res.code === '200') {
+          this.tagList = res.data || []
+        }
+      }).catch(() => {})
+    },
+    tagIdOf(name) {
+      const tag = this.tagList.find(item => item.name === name)
+      return tag ? tag.id : null
     },
 
     /* ---------- 评论 ---------- */
@@ -560,6 +586,30 @@ export default {
   font-size: 17px;
   line-height: 1.9;
   color: #606266;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.tag-link {
+  display: inline-block;
+  font-size: 12px;
+  color: #737373;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  transition: all 0.25s ease;
+}
+
+a.tag-link:hover {
+  color: #0a0a0a;
+  border-color: #d4d4d4;
 }
 
 .markdown-body {

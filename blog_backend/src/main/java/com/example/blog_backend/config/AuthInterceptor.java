@@ -128,6 +128,11 @@ public class AuthInterceptor implements HandlerInterceptor {
             return !"GET".equalsIgnoreCase(method);
         }
 
+        // 标签：公开读（列表/筛选），新建与删除需管理员
+        if (path.startsWith("/tag")) {
+            return !"GET".equalsIgnoreCase(method);
+        }
+
         return false;
     }
 

@@ -31,6 +31,16 @@ const routes = [
     }
   },
   {
+    path: '/tag',
+    name: 'Tag',
+    component: () => import('../views/Tag.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
+    }
+  },
+  {
     path: '/article/edit/:id?',
     name: 'ArticleEditor',
     component: () => import('../views/ArticleEditor.vue'),

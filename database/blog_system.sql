@@ -150,6 +150,37 @@ CREATE TABLE `about_me` (
 
 INSERT INTO `about_me` (`id`, `content`) VALUES (1, '');
 
+--
+-- Table structure for table `tag`（标签）
+--
+
+DROP TABLE IF EXISTS `article_tag`;
+DROP TABLE IF EXISTS `tag`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tag` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '标签ID',
+  `name` varchar(50) NOT NULL COMMENT '标签名',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `article_tag`（文章-标签关联，多对多）
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `article_tag` (
+  `article_id` int NOT NULL COMMENT '文章ID',
+  `tag_id` int NOT NULL COMMENT '标签ID',
+  PRIMARY KEY (`article_id`,`tag_id`),
+  KEY `idx_tag` (`tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

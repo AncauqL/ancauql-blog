@@ -74,20 +74,21 @@ public class ArticleController {
         return Result.success(articleService.selectStats());
     }
 
-    // 分页查询（articleTitle / status / categoryId 均可选；status 仅对管理员生效）
+    // 分页查询（articleTitle / status / categoryId / tagId 均可选；status 仅对管理员生效）
     @GetMapping("/selectPage")
     public Result selectByPage(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false, defaultValue = "") String articleTitle,
             @RequestParam(required = false, defaultValue = "") String status,
-            @RequestParam(required = false) Integer categoryId) {
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) Integer tagId) {
         if (!AuthContext.isManager()) {
             return Result.success(articleService.selectPublishedPage(pageNum,
-                    pageSize, articleTitle, categoryId));
+                    pageSize, articleTitle, categoryId, tagId));
         }
         return Result.success(articleService.selectPage(pageNum,
-                pageSize, articleTitle, status, categoryId));
+                pageSize, articleTitle, status, categoryId, tagId));
     }
 
     // 新增 / 编辑（id为null则新增，有id则更新）；返回带 id 的文章对象

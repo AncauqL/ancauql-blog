@@ -28,6 +28,20 @@
         <el-option label="已发布" value="published" />
         <el-option label="草稿" value="draft" />
       </el-select>
+      <el-select
+          v-model="searchTagId"
+          placeholder="按标签筛选"
+          clearable
+          class="status-select"
+          @change="search"
+      >
+        <el-option
+            v-for="item in tagList"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+        />
+      </el-select>
       <el-button type="primary" @click="search">查询</el-button>
       <el-button @click="resetSearch">重置</el-button>
     </div>
@@ -49,6 +63,20 @@
       <el-table-column label="分类" width="120">
         <template slot-scope="scope">
           <span>{{ getCategoryName(scope.row.categoryId) }}</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="标签" min-width="150">
+        <template slot-scope="scope">
+          <template v-if="scope.row.tagNames && scope.row.tagNames.length">
+            <el-tag
+                v-for="name in scope.row.tagNames"
+                :key="'tag-' + scope.row.id + '-' + name"
+                size="mini"
+                class="tag-cell"
+            >#{{ name }}</el-tag>
+          </template>
+          <span v-else class="muted">—</span>
         </template>
       </el-table-column>
 
@@ -122,8 +150,10 @@ export default {
     return {
       articleList: [],
       categoryList: [],
+      tagList: [],
       searchTitle: '',
       searchStatus: '',
+      searchTagId: null,
       pageNum: 1,
       pageSize: 10,
       total: 0
@@ -131,18 +161,21 @@ export default {
   },
   created() {
     this.loadCategories()
+    this.loadTags()
     this.load()
   },
   methods: {
     load() {
-      request.get('/article/selectPage', {
-        params: {
-          pageNum: this.pageNum,
-          pageSize: this.pageSize,
-          articleTitle: this.searchTitle || '',
-          status: this.searchStatus || ''
-        }
-      }).then(res => {
+      const params = {
+        pageNum: this.pageNum,
+        pageSize: this.pageSize,
+        articleTitle: this.searchTitle || '',
+        status: this.searchStatus || ''
+      }
+      if (this.searchTagId !== null) {
+        params.tagId = this.searchTagId
+      }
+      request.get('/article/selectPage', { params }).then(res => {
         if (res.code === '200') {
           this.articleList = (res.data && res.data.records) || []
           this.total = (res.data && res.data.total) || 0
@@ -166,9 +199,17 @@ export default {
         }
       })
     },
+    loadTags() {
+      request.get('/tag/selectAll').then(res => {
+        if (res.code === '200') {
+          this.tagList = res.data || []
+        }
+      })
+    },
     resetSearch() {
       this.searchTitle = ''
       this.searchStatus = ''
+      this.searchTagId = null
       this.search()
     },
     del(id) {
@@ -224,6 +265,10 @@ export default {
 
 .muted {
   color: #909399;
+}
+
+.tag-cell {
+  margin: 2px 4px 2px 0;
 }
 
 .page-header {

@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、用户体系 USER、admin 邮箱登录与账号设置、AboutMe 后台可编辑；本批：**上线安全硬化（代码侧）**——bcrypt 密码、登录失败锁定、全局异常兜底、CORS 白名单、DB 密码改环境变量，并新增 `deploy/` 部署材料 nginx/systemd/备份/低权限建库脚本）
+最后更新：2026-09-10（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、用户体系 USER、admin 邮箱登录与账号设置、AboutMe 后台可编辑、上线安全硬化（代码侧，见 §11-⑥）；本批：**标签系统**——`tag`/`article_tag` 两表、`/tag` 接口、文章挂标签（编辑器多选可新建）、后台标签管理页、首页标签筛选（`/?tag=id`）、详情页与列表标签展示）
 
 ---
 
@@ -25,7 +25,7 @@ AncauqL_blog/
 ├─ dev-env.bat                ← 本机数据库密码（gitignore，勿提交勿外传）
 ├─ blog_backend/              ← Spring Boot，端口 9999
 │  └─ src/main/java/com/example/blog_backend/
-│     ├─ controller/          ← Hello / Auth / Article / Category / User / File
+│     ├─ controller/          ← Hello / Auth / Article / Category / Tag / Comment / About / User / File / Feed
 │     ├─ service/ + impl/     ← 业务层
 │     ├─ mapper/              ← MyBatis-Plus Mapper（基本无 XML，UserMapper.xml 除外）
 │     ├─ entity/ dto/         ← 实体与传输对象（dto 含 ArchiveGroup / ArticleNeighbors）
@@ -41,7 +41,7 @@ AncauqL_blog/
 │     ├─ utils/markdown.js    ← Markdown 渲染管线（渲染/高亮/消毒/字数统计），渲染必须复用它
 │     ├─ assets/css/markdown.css ← 正文排版样式（markdown.js 引入，详情页+编辑器共用）
 │     ├─ router/index.js      ← 路由 + 登录/角色守卫 + meta.layout
-│     └─ views/               ← HomeView / Archive / ArticleDetail / ArticleEditor / Article / Category / User / Login / AboutMe
+│     └─ views/               ← HomeView / Archive / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / AboutMe / AboutEditor / AccountSettings / User / Login / Register
 └─ database/blog_system.sql   ← 主库脚本（含种子数据）
 ```
 
@@ -68,7 +68,8 @@ AncauqL_blog/
     - 路由全部前台化：`/post/:id` 详情、`/archive`、`/aboutme`、`/login` 均无管理布局
     - 移动端 ≤640px 适配（导航收纳、封面缩小）
   - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
-- [ ] **M4 长期增强**：RSS、评论、标签、统计
+- [ ] **M4 长期增强**：统计、搜索、站点配置表（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10）
+- 标签系统（2026-09-10 完成）：`tag` + `article_tag` 两表（多对多）；`/tag` 接口（公开读、管理员写，重名/空名给出中文报错）；文章可挂多个标签（编辑器多选，可直接输入新名字回车即建）；后台「标签管理」页（`/tag`）增删改 + 各标签已发布文章数；首页标签筛选条（写进地址栏 `/?tag=id`，详情页标签可点进来）；首页卡片、文章管理列表、详情页均显示标签；标签按已发布文章计数（草稿不计）
 - 体验/工程细节（2026-09-03 完成）：文章可后台“置顶”(is_top)→首页“置顶”大卡；优雅 404 页；文章图片懒加载；时间解析统一到 `utils/datetime.js`；归档条目改 `<router-link>`；`API_BASE` 走 `.env`(VUE_APP_API_BASE，见 .env.example)；前台阅读缩放(1.1，正文详情页再 1.1)
 - 评论系统（2026-09-09 完成）：自建轻量评论——`comment` 表、详情页评论区（即发即显）、蜜罐字段 + IP 限流、后台“评论管理”页（列表/删除/跳原文）
 - 用户体系（2026-09-09 完成）：开放注册普通用户(角色 USER)——`/auth/register` 邮箱注册(蜜罐+限流)；评论改**登录后可发并绑定账号(user_id)**，删除=管理员或本人；修复 RoleUtil 将未知角色误归 ADMIN 的越权隐患；USER 无后台权限，SUPER_ADMIN/ADMIN 不受影响
@@ -169,7 +170,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | GET /auth/me · POST /auth/logout | 任意登录 | 仅需登录(USER 亦可)；Token 在内存，重启失效 |
 | POST /auth/profile | 任意登录 | 自助绑/改邮箱、改密码：`email`+`currentPassword`+`newPassword?`；验当前密码，邮箱全站唯一 |
 | GET /article/selectAll | 公开* | 游客只见 published；管理员见全部（旧接口，新代码请用 selectPage） |
-| GET /article/selectPage | 公开* | 参数全可选：pageNum=1, pageSize=10, articleTitle, status（status 仅管理员生效，游客恒 published）；按 create_time desc, id desc；不含 content |
+| GET /article/selectPage | 公开* | 参数全可选：pageNum=1, pageSize=10, articleTitle, status（status 仅管理员生效，游客恒 published）, categoryId, tagId（按标签筛选，命中 article_tag）；按 is_top desc, create_time desc, id desc；不含 content；records 额外带 `tagNames` |
 | GET /article/detail?id= | 公开* | 草稿仅管理员可见(403)；游客访问已发布文章时 view_count 原子 +1，管理员预览不计数 |
 | GET /article/neighbors?id= | 公开 | 已发布文章的上一篇/下一篇 `{prev:{id,title},next:{...}}`，按 create_time asc, id asc |
 | GET /article/archive | 公开 | 归档：已发布文章按年分组 `[{year, articles:[{id,title,createTime}]}]`，年份与组内均倒序 |
@@ -181,6 +182,9 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | DELETE /comment/delete?id= | 任意登录 | 删除评论：管理员任意，普通用户仅本人 |
 | GET /about | 公开 | AboutMe 正文 Markdown（无则前端回退 site.js） |
 | PUT /about | 管理员 | 保存 AboutMe 正文 Markdown（about_me 单行 upsert） |
+| GET /tag/selectAll | 公开 | 标签列表 `[{id,name,count}]`（count=该标签下**已发布**文章数），按 name 升序 |
+| POST /tag | 管理员 | 新建/改名 `{id?, name}`；空名、超 50 字、重名返回中文错误 msg |
+| DELETE /tag/delete?id= | 管理员 | 删标签，并同时清掉 `article_tag` 里对应关联行 |
 | GET /category/selectAll 等 | 公开读/管理员写 | 同 article 模式 |
 | /user/** 全部 | 仅超管 | 不可删除/降级当前登录账号 |
 | POST /file/upload | 管理员 | multipart `file`；仅 jpg/jpeg/png/gif/webp（无 svg，防 XSS）；≤10MB；返回相对路径字符串 |
@@ -195,6 +199,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
   nickname, role(`SUPER_ADMIN`/`ADMIN`/`USER`), email, create_time
 - `comment`: id, article_id, user_id(发表用户，空=旧游客评论), nickname(40), content(2000), create_time
 - `about_me`: id(固定1), content(longtext, AboutMe 正文 Markdown), update_time
+- `tag`: id, name(唯一索引, ≤50), create_time
+- `article_tag`: article_id + tag_id（复合主键，多对多；删标签时后端会清掉这里的关联）
 
 ## 10. 工作流程（每个任务照此执行）
 
@@ -240,7 +246,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 
 **未做（后续）**：
 - sitemap.xml 与 SEO meta（依赖 SSR / 预渲染，评估后再定）。
-- 标签系统：tag 表 + article_tag 关联表 + 前后台 UI。
+- 标签系统：✅ 已完成（2026-09-10，见 §3；tag + article_tag 两表 + 前后台 UI）。
 - 评论：✅ 已自建轻量（comment 表、即发即显 + 后台管理，2026-09-09，见 §3）；Giscus 仅作未来上线后的可选替代（需 GitHub 账号 + 公网）。
 - 访问统计：自托管 Umami 或简单 access_log 表。
 - 站点配置表（site_config），关于我页面后台可编辑。
@@ -281,3 +287,6 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 移除 M3-⑤「安全硬化 + 部署上线」规划（2026-09-03） | 站主拍板：不按原预设路线执行该大步，改为与站主商量确定要新增的附加/拓展功能；原规划涉及的各项安全/部署事项，此后一律按新的商量结果再定 |
 | 站点信息集中化 + AboutMe 详情页 + 移除首页“假订阅”（2026-09-03） | 首页简介与 AboutMe 文案此前两套不一致；假订阅收集邮箱却不做任何事，属误导。集中到 `config/site.js` 一处维护，AboutMe 空版块自动隐藏待填充，联系区改为真实可用的 RSS + 社交 + 写信 |
 | 评论用自建轻量（comment 表），暂不上 Giscus（2026-09-09） | 未上线到公网、访客无需账号留言、数据 100% 自持；Giscus 需公开仓库 + GitHub 登录 + 公网，仅作未来可选替代 |
+| 标签用两张表 + 前端按名字反查 id（2026-09-10） | 多对多必须走关联表，删标签要顺手清关联；详情页只回标签名（够展示），点标签筛选再按 `/tag/selectAll` 映射回 id，避免为少数场景改接口结构 |
+| 首页标签筛选写进地址栏 `?tag=id`（2026-09-10） | 筛选结果可分享/可回退；详情页标签直接链到首页该标签，省一个独立的标签页 |
+| 文章保存时按“传了 tagIds 才更新标签”语义（2026-09-10） | 后台列表的“置顶/取消置顶”只 POST `{id, top}`，若不判断就会把文章标签清空 |

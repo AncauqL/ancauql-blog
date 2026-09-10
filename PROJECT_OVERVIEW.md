@@ -84,6 +84,8 @@ AncauqL_blog/
   - “置顶”大卡：后台把文章“置顶”后，首页顶部出现深色大卡展示该文（多篇置顶时取最新一篇；无置顶则不显示）。
   - 文章网格：三列（移动一列 / 平板两列），`gap-6`，卡片图 `aspect-[4/3]`、hover `scale(1.05)` 0.6s 缓动。
   - 分类筛选条：真实分类 `categoryId` 服务端过滤（选中态黑底白字圆角按钮）。
+  - 标签筛选条：分类下方一行小胶囊，展示所有**有已发布文章**的标签（带篇数）。点击后筛选写进地址栏 `/?tag=标签ID`，可直接分享 / 前进后退；选中时标题变为「标签 · 名称」并出现「清除标签筛选」。
+  - 文章卡片底部展示该文标签（`#标签名` 小圆角标签）。
   - “加载更多”：真分页追加（服务端 selectPage 翻页），到底显示“已加载全部文章”。
   - 关于我区：左图右文两栏，简介文案来自 `site.aboutLines`；未设肖像图时显示站名首字母占位（不裂图）；提供“完整介绍 →”跳转 `/aboutme`，并展示社交入口。
   - 保持联系区：RSS 订阅（真实 `/feed.xml`）+ 社交关注 + 邮件写信；已移除原先“假订阅”表单（不再采集访客邮箱）。
@@ -94,6 +96,7 @@ AncauqL_blog/
   - 代码块带语言标签、语法高亮和一键复制按钮。
   - 宽屏下右侧显示自动生成的目录，支持点击跳转和滚动高亮。
   - 元信息展示创建时间、分类名、阅读数、全文字数、预计阅读时长。
+  - 摘要下方展示文章标签（`#标签名`），点击跳到首页该标签的筛选视图。
   - 有封面时展示头图。
   - 底部提供上一篇 / 下一篇导航（仅限已发布文章）。
   - 游客每次打开已发布文章，阅读数自动 +1；管理员预览不计数。
@@ -106,21 +109,26 @@ AncauqL_blog/
 
 ### 管理侧页面
 
-后台使用独立布局（`AdminLayout`，`meta.layout: 'admin'` 的路由）：深色侧边栏（文章管理 / 分类管理 / 账号管理 / 查看前台）。前台顶栏对管理员显示「进入后台」入口。
+后台使用独立布局（`AdminLayout`，`meta.layout: 'admin'` 的路由）：深色侧边栏（文章管理 / 分类管理 / 标签管理 / 评论管理 / 关于我编辑 / 账号设置 / 账号管理 / 查看前台）。前台顶栏对管理员显示「进入后台」入口。
 
 - 分类管理：`/category`
   - 展示所有分类，按 `sort` 升序排序。
   - 支持新增、编辑、删除分类。
   - 字段包括分类名称、分类描述、排序值。
+- 标签管理：`/tag`
+  - 展示全部标签（按名称升序）与各自的**已发布文章数**。
+  - 支持新增、改名、删除；重名 / 空名 / 超 50 字会给出中文提示。
+  - 删除标签会同时移除它与所有文章的关联（删除前会提示还挂着几篇文章）。
 - 文章管理：`/article`
-  - 服务端分页表格，支持按标题搜索、按状态（已发布 / 草稿）过滤。
-  - 展示标题、摘要、分类、状态、阅读数、创建时间。
+  - 服务端分页表格，支持按标题搜索、按状态（已发布 / 草稿）过滤，按标签筛选。
+  - 展示标题、摘要、分类、标签、状态、阅读数、创建时间。
   - 新增 / 编辑跳转到全屏编辑器页，删除带确认。
 - 文章编辑器：`/article/edit/:id?`
   - 左右分栏：左侧 Markdown 输入，右侧实时预览（与详情页同一套渲染管线）。
   - 工具栏：插入图片、加粗、行内代码、代码块、链接、引用，以及 公式（LaTeX）、公式块、标题、列表、删除线、表格。
   - 图片上传：按钮选择、粘贴、拖拽三种方式，自动上传后插入 Markdown。
   - 封面上传与预览。
+  - 标签选择：多选框，可从已有标签里选，也可直接输入新标签名回车即新建并挂上。
   - 本地草稿：自动保存到 localStorage，意外关闭后可恢复；离开页面有未保存确认。
   - 快捷键：Tab 缩进、Ctrl+S 保存。
   - 状态切换（草稿 / 发布）+ 保存 / 保存并返回。
@@ -189,14 +197,16 @@ AncauqL_blog/
 - `GET /article/detail?id=文章ID`：按 ID 查询文章详情；游客访问已发布文章时阅读数 +1。
 - `GET /article/neighbors?id=文章ID`：查询上一篇 / 下一篇（按发布时间排序，仅返回已发布文章的 id 和标题）。
 - `GET /article/selectSearch?articleTitle=关键词`：按标题模糊搜索（旧接口，新代码建议用 selectPage）。
-- `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词&status=状态&categoryId=分类ID`：分页查询。
+- `GET /article/selectPage?pageNum=1&pageSize=10&articleTitle=关键词&status=状态&categoryId=分类ID&tagId=标签ID`：分页查询。
   - 所有参数可选（pageNum 默认 1，pageSize 默认 10）。
-  - 按创建时间倒序、id 倒序排列；**返回结果不含 content 大字段**，正文用 detail 单查。
-  - status 过滤仅对管理员生效；游客恒定只看到已发布文章。categoryId 对所有人生效。
+  - 按置顶优先、创建时间倒序、id 倒序排列；**返回结果不含 content 大字段**，正文用 detail 单查。
+  - status 过滤仅对管理员生效；游客恒定只看到已发布文章。categoryId / tagId 对所有人生效（tagId 命中 `article_tag` 关联）。
+  - 每条记录额外带 `tagNames`（标签名数组），供列表直接展示。
 - `GET /article/archive`：归档数据，已发布文章按年份分组（年份与组内均倒序），元素为 `{year, articles:[{id,title,createTime}]}`。
 - `GET /article/stats`：站点统计，返回 `{articleCount, totalViews}`（仅统计已发布文章；写作年数由前端按建站年份计算）。
 - `POST /article`：新增或编辑文章；请求体带 `id` 时编辑，不带 `id` 时新增。**返回带 id 的完整文章对象**。
-- `DELETE /article/delete?id=文章ID`：删除文章。
+  - `tagIds`（标签 ID 数组）：传了才更新该文标签（先清后插）；不传则保持原样，因此“只改置顶”这类局部更新不会清空标签。
+- `DELETE /article/delete?id=文章ID`：删除文章（同时清掉该文的标签关联）。
 
 ### 评论接口
 
@@ -225,6 +235,12 @@ AncauqL_blog/
 - `GET /category/selectPage?pageNum=1&pageSize=10&categoryName=关键词`：分页查询。
 - `POST /category`：新增或编辑分类；请求体带 `id` 时编辑，不带 `id` 时新增。
 - `DELETE /category/delete?id=分类ID`：删除分类。
+
+### 标签接口
+
+- `GET /tag/selectAll`：查询全部标签（公开），返回 `[{id, name, count}]`，`count` 为该标签下**已发布**文章数，按名称升序。
+- `POST /tag`：新增或改名标签（管理员）；请求体 `{id?, name}`，带 `id` 为改名。空名 / 超 50 字 / 重名返回中文错误提示。
+- `DELETE /tag/delete?id=标签ID`：删除标签（管理员），同时清理 `article_tag` 中的关联行。
 
 ### 用户接口
 
@@ -265,9 +281,9 @@ AncauqL_blog/
 `user` 表：
 
 - `username`：账号，带唯一索引。
-- `password`：密码。新密码保存为 `SHA256:` 前缀格式；旧明文密码首次登录成功后会自动升级。
+- `password`：密码。保存为 `BCRYPT:` 前缀（bcrypt + 随机盐）；更早的 `SHA256:` / 明文密码在首次登录成功后自动升级为 bcrypt。
 - `nickname`：昵称。
-- `role`：角色，当前使用 `SUPER_ADMIN` / `ADMIN`。
+- `role`：角色，当前使用 `SUPER_ADMIN` / `ADMIN` / `USER`（注册访客，仅可评论）。
 - `email`：邮箱。
 - `create_time`：创建时间。
 
@@ -279,6 +295,17 @@ AncauqL_blog/
 - `nickname`：昵称（≤40 字）。
 - `content`：评论内容（≤2000 字）。
 - `create_time`：发表时间。
+
+`tag` 表（标签）：
+
+- `id`：标签 ID。
+- `name`：标签名（≤50 字，唯一索引，重名会被拒绝）。
+- `create_time`：创建时间。
+
+`article_tag` 表（文章-标签多对多关联）：
+
+- `article_id` + `tag_id`：复合主键。
+- 文章保存时带上 `tagIds` 会先删后插；删除文章或删除标签时，对应关联行由后端清理。
 
 ## 启动方式
 
@@ -380,6 +407,7 @@ npm run build
 - 站点信息集中在 `src/config/site.js`：站点名 / slogan / identity / 首页简介 `aboutLines` / 详情页个人资料 `profile` / 肖像 `portrait` / 社交链接 `socials` / 备案号。社交入口与页脚图标均由这份配置驱动，留空的项自动隐藏。
 - RSS 订阅源 `/feed.xml` 的站点标题与前台基址配置在后端 `application.yml` 的 `blog.site-title` / `blog.site-url`（站点地址可用环境变量 `BLOG_SITE_URL` 覆盖）。
 - 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容。
+- 标签：`/tag/selectAll` 公开读，写操作（新增/改名/删除）需管理员；文章通过 `article_tag` 关联多个标签，标签计数只统计已发布文章；首页支持 `/?tag=标签ID` 直达筛选。
 - 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。
 

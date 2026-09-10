@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @TableName("article")
 public class Article {
@@ -36,6 +37,14 @@ public class Article {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
+
+    /** 关联标签 id（非表字段，仅接口传输/保存用） */
+    @TableField(exist = false)
+    private List<Integer> tagIds;
+
+    /** 关联标签名（非表字段，供前端展示） */
+    @TableField(exist = false)
+    private List<String> tagNames;
 
     public Integer getId() {
         return id;
@@ -131,5 +140,21 @@ public class Article {
 
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public List<Integer> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Integer> tagIds) {
+        this.tagIds = tagIds;
+    }
+
+    public List<String> getTagNames() {
+        return tagNames;
+    }
+
+    public void setTagNames(List<String> tagNames) {
+        this.tagNames = tagNames;
     }
 }

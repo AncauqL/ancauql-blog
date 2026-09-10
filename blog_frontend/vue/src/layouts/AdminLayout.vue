@@ -34,6 +34,10 @@
             <i class="el-icon-folder"></i><span>分类管理</span>
           </el-menu-item>
 
+          <el-menu-item index="/tag">
+            <i class="el-icon-price-tag"></i><span>标签管理</span>
+          </el-menu-item>
+
           <el-menu-item index="/comment">
             <i class="el-icon-chat-dot-round"></i><span>评论管理</span>
           </el-menu-item>

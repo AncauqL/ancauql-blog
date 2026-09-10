@@ -81,19 +81,43 @@
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
             <div class="h-px bg-neutral-200 mb-6 divider-line" :class="{ visible: postsDividerVisible }"></div>
-            <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">最新文章</h2>
+            <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">
+              {{ activeTagId === null ? '最新文章' : '标签 · ' + activeTagName }}
+            </h2>
+            <button
+                v-if="activeTagId !== null"
+                class="mt-2 text-xs text-neutral-400 hover:text-neutral-900 transition-colors"
+                @click="selectTag(null)"
+            >← 清除标签筛选</button>
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <button
-                :class="['tag-btn text-xs font-medium px-3.5 py-1.5 rounded-full border border-neutral-200', activeCategoryId === null ? 'active' : 'text-neutral-500']"
-                @click="selectCategory(null)"
-            >全部</button>
-            <button
-                v-for="item in categoryList"
-                :key="item.id"
-                :class="['tag-btn text-xs font-medium px-3.5 py-1.5 rounded-full border border-neutral-200', activeCategoryId === item.id ? 'active' : 'text-neutral-500']"
-                @click="selectCategory(item.id)"
-            >{{ item.name }}</button>
+          <div class="flex flex-col items-start sm:items-end gap-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <button
+                  :class="['tag-btn text-xs font-medium px-3.5 py-1.5 rounded-full border border-neutral-200', activeCategoryId === null ? 'active' : 'text-neutral-500']"
+                  @click="selectCategory(null)"
+              >全部</button>
+              <button
+                  v-for="item in categoryList"
+                  :key="item.id"
+                  :class="['tag-btn text-xs font-medium px-3.5 py-1.5 rounded-full border border-neutral-200', activeCategoryId === item.id ? 'active' : 'text-neutral-500']"
+                  @click="selectCategory(item.id)"
+              >{{ item.name }}</button>
+            </div>
+
+            <!-- 标签筛选 -->
+            <div v-if="tagList.length" class="flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] uppercase tracking-widest text-neutral-300">标签</span>
+              <button
+                  :class="['tag-chip', activeTagId === null ? 'active' : '']"
+                  @click="selectTag(null)"
+              >全部</button>
+              <button
+                  v-for="item in tagList"
+                  :key="item.id"
+                  :class="['tag-chip', activeTagId === item.id ? 'active' : '']"
+                  @click="selectTag(item.id)"
+              >#{{ item.name }}<span class="tag-count">{{ item.count }}</span></button>
+            </div>
           </div>
         </div>
 
@@ -126,6 +150,13 @@
                 <p class="mt-2 text-sm text-neutral-400 font-light leading-relaxed line-clamp-2">
                   {{ item.summary }}
                 </p>
+                <div v-if="item.tagNames && item.tagNames.length" class="mt-3 flex items-center gap-1.5 flex-wrap">
+                  <span
+                      v-for="name in item.tagNames"
+                      :key="'tag-' + item.id + '-' + name"
+                      class="text-[10px] text-neutral-400 bg-neutral-100 rounded-full px-2 py-0.5"
+                  >#{{ name }}</span>
+                </div>
               </div>
             </router-link>
           </article>
@@ -247,7 +278,9 @@ export default {
       site: SITE,
       articleList: [],
       categoryList: [],
+      tagList: [],
       activeCategoryId: null,
+      activeTagId: null,
       loaded: false,
       pageNum: 1,
       pageSize: 6,
@@ -278,10 +311,16 @@ export default {
     },
     feedUrl() {
       return API_BASE + '/feed.xml'
+    },
+    activeTagName() {
+      const tag = this.tagList.find(item => item.id === this.activeTagId)
+      return tag ? tag.name : ''
     }
   },
   created() {
+    this.syncFromQuery()
     this.loadCategories()
+    this.loadTags()
     this.load()
     this.loadStats()
   },
@@ -305,6 +344,9 @@ export default {
       if (this.activeCategoryId !== null) {
         params.categoryId = this.activeCategoryId
       }
+      if (this.activeTagId !== null) {
+        params.tagId = this.activeTagId
+      }
       request.get('/article/selectPage', { params }).then(res => {
         this.loaded = true
         if (res.code === '200') {
@@ -322,6 +364,13 @@ export default {
       request.get('/category/selectAll').then(res => {
         if (res.code === '200') {
           this.categoryList = res.data || []
+        }
+      }).catch(() => {})
+    },
+    loadTags() {
+      request.get('/tag/selectAll').then(res => {
+        if (res.code === '200') {
+          this.tagList = (res.data || []).filter(item => item.count > 0)
         }
       }).catch(() => {})
     },
@@ -343,6 +392,25 @@ export default {
       this.pageNum = 1
       this.load()
     },
+    /** 标签筛选写进地址栏（?tag=id），详情页标签点进来也能直接生效 */
+    selectTag(id) {
+      const query = { ...this.$route.query }
+      if (id === null) {
+        delete query.tag
+      } else {
+        query.tag = String(id)
+      }
+      this.$router.push({ path: '/', query }).catch(() => {})
+    },
+    syncFromQuery() {
+      const raw = this.$route.query.tag
+      if (raw === undefined || raw === null || raw === '') {
+        this.activeTagId = null
+        return
+      }
+      const parsed = Number(raw)
+      this.activeTagId = Number.isNaN(parsed) ? null : parsed
+    },
     loadMore() {
       this.loadingMore = true
       const params = {
@@ -352,6 +420,9 @@ export default {
       }
       if (this.activeCategoryId !== null) {
         params.categoryId = this.activeCategoryId
+      }
+      if (this.activeTagId !== null) {
+        params.tagId = this.activeTagId
       }
       request.get('/article/selectPage', { params }).then(res => {
         if (res.code === '200' && res.data) {
@@ -403,6 +474,12 @@ export default {
       if (list && this.pageNum === 1) {
         this.featured = list.find(a => a.top) || null
       }
+    },
+    '$route.query.tag'() {
+      // 地址栏标签变化（含从详情页标签点进来）时重新拉第一页
+      this.syncFromQuery()
+      this.pageNum = 1
+      this.load()
     }
   }
 }
@@ -427,6 +504,33 @@ export default {
 }
 .tag-btn:not(.active):hover {
   background: #f5f5f5;
+}
+
+/* 标签筛选小胶囊 */
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #737373;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  transition: all 0.25s ease;
+}
+.tag-chip:hover {
+  color: #0a0a0a;
+  border-color: #d4d4d4;
+}
+.tag-chip.active {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #fff;
+}
+.tag-count {
+  font-size: 10px;
+  opacity: 0.55;
 }
 
 /* 分割线动画 */
