@@ -1,0 +1,30 @@
+# Spring Boot 后端 systemd 服务（放到 /etc/systemd/system/blog-backend.service）
+# 环境变量文件 /etc/blog/blog.env 权限应为 600，且不要提交进仓库。
+
+[Unit]
+Description=AncauqL Blog backend (Spring Boot)
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=blog
+Group=blog
+WorkingDirectory=/opt/blog
+# uploads 目录相对工作目录：/opt/blog/uploads
+EnvironmentFile=/etc/blog/blog.env
+ExecStart=/usr/bin/java -Xms128m -Xmx512m -jar /opt/blog/blog_backend.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# 基础加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/blog/uploads
+
+[Install]
+WantedBy=multi-user.target

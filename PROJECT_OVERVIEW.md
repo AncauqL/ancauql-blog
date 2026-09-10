@@ -369,7 +369,9 @@ npm run build
 
 ## 开发与迭代提示
 
-- 后端跨域当前使用 `@CrossOrigin(origins = "*")`，开发方便，但上线前建议改成明确域名。
+- 跨域已收敛为白名单：`blog.cors-allowed-origins`（环境变量 `CORS_ALLOWED_ORIGINS`）；生产建议同域反代（前端走 `/api`）后可留空。
+- 登录防爆破：同 IP 或同账号 15 分钟内失败 5 次即临时锁定 15 分钟；密码使用 BCrypt（存量 SHA256/明文登录后自动升级）。
+- 部署材料见 `deploy/DEPLOY.md`：nginx 同域反代（登录限流 + 安全头）、systemd 服务、MySQL 备份脚本、低权限建库脚本。
 - 前端访问后端的基址走 `process.env.VUE_APP_API_BASE`（见 `blog_frontend/vue/.env.example`），未配置时回退 `http://localhost:9999`；换域名/部署只需改 `.env`，不再改源码。
 - 前端路由使用 `history` 模式，部署到 Nginx 或其他静态服务器时，需要配置 fallback 到 `index.html`。
 - 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。

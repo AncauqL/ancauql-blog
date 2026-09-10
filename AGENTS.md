@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、普通用户体系 USER、admin 邮箱登录与账号设置；本批：AboutMe 后台可编辑——`about_me` 表存正文 Markdown，公开 `GET /about`、管理员 `PUT /about`，AboutMe 页优先读后端正文(空则回退 site.js)，后台新增“关于我编辑”分栏预览页）
+最后更新：2026-09-09（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、用户体系 USER、admin 邮箱登录与账号设置、AboutMe 后台可编辑；本批：**上线安全硬化（代码侧）**——bcrypt 密码、登录失败锁定、全局异常兜底、CORS 白名单、DB 密码改环境变量，并新增 `deploy/` 部署材料 nginx/systemd/备份/低权限建库脚本）
 
 ---
 
@@ -246,27 +246,19 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - 站点配置表（site_config），关于我页面后台可编辑。
 - Vue 2 → Vue 3 + Vite + Element Plus 迁移（页面少时做，越拖越贵）。
 
-### ⑥ 上线安全硬化与部署（待做 —— 站主已确认“以后再做”，对公网部署前必读）
+### ⑥ 上线安全硬化与部署（✅ 代码侧已完成 2026-09-09；服务器操作待站主执行）
 
-> 2026-09-09 站主决定：暂不做，先记录在此，日后按此执行。现状**可做私有/内网使用**，**不建议直接对公网开放**。已开放公开注册，风险比纯个人站更高。
-
-- 必做(上线前)：改掉 admin 默认口令(123456) —— 现在就能在“账号设置”做，别等。
-- 登录/注册**失败限流+锁定**(后端内存即可)；已有点评/注册 IP 限流，登录接口还没有。
-- 密码升级 **bcrypt**(PasswordUtil 加 `BCRYPT:` 分支，兼容存量 SHA256/明文升级链；只引 spring-security-crypto)。
-- `@RestControllerAdvice` 全局异常兜底，返回 `Result.error`，别裸抛 500/堆栈。
-- CORS 从 `@CrossOrigin("*")` 收敛：配白名单，或走同域 `/api` 反代并撤掉全开 CORS。
-- 数据库：建**独立低权限账号**+强密码，用环境变量注入，**别再把密码写进提交的 application.yml**。
-- 前端 `.env.production` 已默认 `/api`（同域反代），部署时按需改。
-- 反向代理：nginx(托管 dist + history fallback + `/api`→9999 + `/uploads`) + **HTTPS**(Let's Encrypt/Caddy) + 安全头。
-- 备份：DB 定期 dump 脚本 + 上线前全量备份。
-- 可选：公开注册是否保留/加邮箱验证(需接 SMTP) —— 见 §11-⑤/评论与账号决策。
-- 部署目标是站主的腾讯云北京轻量(Ubuntu)，凭据站主自持、**服务器操作由站主执行或明确授权后**由 agent 协助。
+- ① admin 默认口令：**站主已自行修改** ✅
+- ② **登录失败限流/锁定**：已做——同 IP 或同账号 15 分钟内失败 5 次即锁定 15 分钟，成功登录清零（`AuthController`）✅
+- ③ **密码 bcrypt**：已做——`PasswordUtil` 用 `BCRYPT:` 前缀 + 随机盐；兼容存量 `SHA256:`/明文并在登录成功后就地升级；只引 `spring-security-crypto` ✅
+- ④ **全局异常兜底 + CORS 收敛**：已做——`GlobalExceptionHandler` 统一返回 `Result.error`（不再裸抛堆栈）；CORS 改为 `blog.cors-allowed-origins` 白名单（env `CORS_ALLOWED_ORIGINS`），各控制器 `@CrossOrigin("*")` 已全部移除 ✅
+- ⑤ **数据库密码**：`application.yml` 不再提供默认密码（必须由 env 提供）；低权限建号脚本 `deploy/mysql/create-app-user.sql` ✅（账号需在服务器上创建）
+- ⑥ **部署材料**：`deploy/` 下含 `DEPLOY.md`（步骤+检查清单）、nginx（同域反代 `/api`、`/uploads`、`/feed.xml`、登录限流、安全头）、`systemd/blog-backend.service`、`backup/mysql-backup.sh`；**实际服务器操作由站主执行或明确授权后进行**
+- **待办（服务器侧）**：建 `blog_app` 低权限账号 → 配 `/etc/blog/blog.env`(600) → 部署 jar+dist → systemd+nginx+HTTPS → 手动跑一次备份验证 → 过一遍 DEPLOY.md 检查清单
 
 ## 12. 已知问题 / 技术债（接手时先看这里）
 
 - Token 存后端内存，重启即掉线。
-- 密码是无盐 SHA256。
-- CORS 全开 `*`。
 - `selectAll` / `selectSearch` 旧接口仍返回全文 content，前端已不用于列表，暂留兼容。
 - 编辑器左右分栏无滚动同步（体验项，有空再做）。
 - uploads 目录无孤儿图片清理机制（文章删了图还在，暂不处理）。
