@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-11（前批：…、**标签系统**、**站内搜索升级**、**站点信息后台可编辑**；本批：**访问统计 + 后台数据看板**——新增 `visit_log` 表与 `POST /visit`（前台每次路由切换上报，游客访问才计）+ `GET /visit/dashboard`（管理员，总览/每日趋势/热门文章），后台新增「数据统计」页 `/dashboard`（纯 CSS 柱状图，未引入图表库））
+最后更新：2026-09-11（前批：…、**标签系统**、**站内搜索升级**、**站点信息后台可编辑**、**访问统计 + 数据看板**；本批：**SEO**——后端新增 `GET /sitemap.xml`（首页/归档/关于我/每篇已发布文章/有文章的标签页，含 lastmod）与 `GET /robots.txt`，前端新增 `utils/seo.js` 按路由改 title/description/OG 标签、`public/index.html` 补静态兜底 meta，后台文章列表 `selectPublishedBriefs` 只为 sitemap 取精简字段）
 
 ---
 
@@ -25,7 +25,7 @@ AncauqL_blog/
 ├─ dev-env.bat                ← 本机数据库密码（gitignore，勿提交勿外传）
 ├─ blog_backend/              ← Spring Boot，端口 9999
 │  └─ src/main/java/com/example/blog_backend/
-│     ├─ controller/          ← Hello / Auth / Article / Category / Tag / Comment / About / Site / Visit / User / File / Feed
+│     ├─ controller/          ← Hello / Auth / Article / Category / Tag / Comment / About / Site / Visit / User / File / Feed / Seo
 │     ├─ service/ + impl/     ← 业务层
 │     ├─ mapper/              ← MyBatis-Plus Mapper（基本无 XML，UserMapper.xml 除外）
 │     ├─ entity/ dto/         ← 实体与传输对象（dto 含 ArchiveGroup / ArticleNeighbors）
@@ -40,6 +40,7 @@ AncauqL_blog/
 │     ├─ utils/request.js     ← axios 实例，导出 API_BASE / resolveAsset
 │     ├─ utils/auth.js        ← 登录态工具（getStoredUser / isManager / logout 等）
 │     ├─ utils/markdown.js    ← Markdown 渲染管线（渲染/高亮/消毒/字数统计），渲染必须复用它
+│     ├─ utils/seo.js         ← 按路由改 title/description/OG/canonical（SPA 客户端 SEO）
 │     ├─ assets/css/markdown.css ← 正文排版样式（markdown.js 引入，详情页+编辑器共用）
 │     ├─ router/index.js      ← 路由 + 登录/角色守卫 + meta.layout
 │     └─ views/               ← HomeView / Archive / SearchView / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / Dashboard / AboutMe / AboutEditor / SiteEditor / AccountSettings / User / Login / Register
@@ -69,7 +70,8 @@ AncauqL_blog/
     - 路由全部前台化：`/post/:id` 详情、`/archive`、`/aboutme`、`/login` 均无管理布局
     - 移动端 ≤640px 适配（导航收纳、封面缩小）
   - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
-- [ ] **M4 长期增强**：sitemap/SEO（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10；站内搜索 ✅ 2026-09-10；站点配置表 ✅ 2026-09-10；访问统计 ✅ 2026-09-11）
+- [x] **M4 长期增强**：RSS / 评论 / 标签 / 站内搜索 / 站点配置表 / 访问统计 / sitemap+SEO 全部完成（2026-09-03 ~ 2026-09-11）
+- sitemap 与 SEO（2026-09-11 完成）：后端 `GET /sitemap.xml`（首页 + 归档 + 关于我 + 每篇已发布文章含 lastmod + 有文章的标签页 `/?tag=id`，自己声明 `application/xml`）与 `GET /robots.txt`（放行前台、屏蔽后台与 /search、声明 Sitemap 绝对地址），站点基址复用 `blog.site-url`；前端 `utils/seo.js` 在首页/文章页/归档/关于我/搜索/404 里改 `document.title`、description、OG/twitter 卡片、canonical，搜索页与 404 标 `noindex`，草稿详情页也标 noindex；`public/index.html` 补静态兜底 meta（lang=zh-CN、description、theme-color、og 默认值）与 noscript 提示；nginx 配置增加 `/sitemap.xml`、`/robots.txt` 反代
 - 访问统计 + 数据看板（2026-09-11 完成）：`visit_log` 表按天存原始记录（只存 `md5(IP+UA+盐)` 访客标识，不落原始 IP）；`POST /visit` 公开上报（前台 `App.vue` 每次路由切换报一次，管理员自己的浏览由后端忽略，爬虫 UA 忽略，同访客同路径 3 秒内去重）；`GET /visit/dashboard?days=` 管理员返回总览(今日/区间/累计 PV·UV) + 每日趋势(缺日补 0) + 热门文章 Top10（文章被删则标题显示「（文章已删除）」）；后台新增「数据统计」页 `/dashboard`（纯 CSS 双色柱状图，未引图表库）
 - 站点信息后台可编辑（2026-09-10 完成）：`site_config` 单行表存 JSON；`GET /site` 公开、`PUT /site` 管理员（key 白名单 + 类型校验，超 64KB 拒绝）；前端 `store/site.js` 维护 `siteState`（`config/site.js` 默认值 + 后台配置按 key 合并，对象一层深合并、数组整段替换），`App.vue` 启动时拉一次；前台四页（FrontLayout/HomeView/AboutMe/AdminLayout）改读 siteState；后台新增「站点信息」页 `/site`（站名/作者/slogan/年份/备案号/Hero 三段/首页简介/肖像上传/AboutMe 资料/社交），支持一键「恢复代码默认」
 - 站内搜索（2026-09-10 完成）：新接口 `GET /article/search`（标题/摘要/正文三处匹配，分页，列表不含 content，游客只搜已发布、管理员能搜到草稿）；前台新增 `/search?q=` 结果页（命中关键词高亮、分类/时间/标签、加载更多）；顶栏 Ctrl+K 覆盖层改为「前 6 条预览 + 查看全部 N 条结果 →」，回车直接进结果页；高亮用切片段渲染，不碰 v-html
@@ -169,6 +171,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 |---|---|---|
 | GET /hello | 公开 | 健康检查 |
 | GET /feed.xml | 公开 | RSS 2.0 订阅源：仅已发布文章、按 create_time desc（最多 50），文章链接按 `blog.site-url` 拼前台地址；标题用 `blog.site-title` |
+| GET /sitemap.xml | 公开 | 站点地图：首页 / 归档 / 关于我 / 每篇已发布文章（带 lastmod）/ 有已发布文章的标签页 `/?tag=id`；Content-Type 为 application/xml；基址用 `blog.site-url` |
+| GET /robots.txt | 公开 | 放行前台，Disallow 登录/注册/搜索/后台各页，末尾声明 `Sitemap: {site-url}/sitemap.xml`（绝对地址） |
 | POST /auth/login | 公开 | `{username,password}` → `{token,user}`；管理员用账号、普通用户用注册邮箱(=username) |
 | POST /auth/register | 公开 | 注册普通用户(USER)：email/nickname/password + 蜜罐 website + IP 限流；成功即登录 |
 | GET /auth/me · POST /auth/logout | 任意登录 | 仅需登录(USER 亦可)；Token 在内存，重启失效 |
@@ -256,7 +260,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - 页脚 / 移动菜单社交入口按配置真实可用（github/bilibili/email/QQ），原先的死链接移除；Bilibili 为实心品牌图标（`IconBase` 增加 `filled` 支持）。
 
 **未做（后续）**：
-- sitemap.xml 与 SEO meta（依赖 SSR / 预渲染，评估后再定）。
+- sitemap.xml 与 SEO meta：✅ 已完成（2026-09-11，见 §3；后端出 `/sitemap.xml` + `/robots.txt`，前端按路由改 title/OG。仍是客户端改 meta，**要更好的收录效果后续可加预渲染**）。
 - 标签系统：✅ 已完成（2026-09-10，见 §3；tag + article_tag 两表 + 前后台 UI）。
 - 评论：✅ 已自建轻量（comment 表、即发即显 + 后台管理，2026-09-09，见 §3）；Giscus 仅作未来上线后的可选替代（需 GitHub 账号 + 公网）。
 - 访问统计：✅ 已完成（2026-09-11，见 §3；`visit_log` 原始记录 + `POST /visit` 上报 + `/dashboard` 看板，未引第三方统计服务）。
@@ -282,6 +286,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - uploads 目录无孤儿图片清理机制（文章删了图还在，暂不处理）。
 - 访问统计存**原始记录**（`visit_log`），没有归档/清理任务：按每天 ~1000 PV 估，一年约 36 万行，暂可承受；再大就加「按天汇总表 + 清理 90 天前原始行」。
 - 统计上报依赖前端 JS（`App.vue` 每次路由切换 POST 一次）：禁用 JS 或用 curl 的访问不会被统计；`rangeUv` 是「按天去重后求和」，跨天同一访客会重复计入（`totalUv` 才是全站去重）。
+- SEO 的 meta/OG 是**前端运行时改 DOM**：Google/Bing 能跑 JS，但大部分社交平台抓取卡片时不执行 JS（只会看到 `public/index.html` 的静态兜底）。要分享卡片精确到文章，后续需要预渲染（prerender）或把 `/post/:id` 做成服务端渲染页。
+- `/sitemap.xml`、`/robots.txt` 由后端提供，nginx 必须按 `deploy/nginx/blog-site.conf` 里新增的两个 location 反代到后端，否则线上拿不到。
 - Element UI vendor 包 1.2MB（按需引入或 Vue3 迁移时一并解决）。
 - e2e 起后端时 `DB_PASSWORD` 必须加引号导出：密码含特殊字符，经 grep/cut 管道
   后未加引号会被 shell 拆坏（2026-08-31 踩坑：Access denied）。
@@ -311,3 +317,5 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 访问统计用「前端主动上报 + 后端自己筛」而不是在 API 拦截器里记（2026-09-11） | SPA 一个页面会打好几个接口（首页要拉文章/分类/标签/统计），按接口记会重复计数且分不清页面；由前端在路由切换时 POST 一次，path/articleId 都准 |
 | 统计忽略管理员自己的浏览，且不存原始 IP（2026-09-11） | 与文章 view_count 的口径一致（作者预览不计数），否则站主自己调试就把数据刷满；访客标识只用 md5(IP+UA+盐)，够去重又不留个人信息 |
 | 看板图表用纯 CSS 柱状图，不引 echarts（2026-09-11） | 只画「近 N 天 PV/UV 双柱 + hover 看数值」，引 echarts 会多 1MB 级依赖；Element UI 里没有现成图表，自己写 40 行 CSS 就够 |
+| SEO 分两半：后端出 sitemap/robots，前端改 meta（2026-09-11） | 后端能给出爬虫真正需要的「有哪些 URL」（sitemap 是静态 XML，最可靠）；而 per-page meta 在 SPA 里只能靠 JS 改 DOM，先把能做的做掉，预渲染等真有需求再上，避免过早引入 SSR 复杂度 |
+| sitemap 单独加 `selectPublishedBriefs` 而不复用 `selectPublishedAll`（2026-09-11） | 后者会把每篇正文（longtext）都读出来，只为生成几行 URL 不值得 |

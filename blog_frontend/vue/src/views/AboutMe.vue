@@ -113,6 +113,7 @@
 import request from '@/utils/request'
 import { siteState } from '@/store/site'
 import { renderMarkdown } from '@/utils/markdown'
+import { setSeo } from '@/utils/seo'
 
 export default {
   name: 'AboutMe',
@@ -123,6 +124,14 @@ export default {
     }
   },
   created() {
+    setSeo({
+      title: '关于我',
+      description: this.site.profile && this.site.profile.motto
+          ? this.site.profile.motto
+          : (this.site.identity || ''),
+      image: this.site.portrait,
+      path: '/aboutme'
+    })
     // 正文可后台编辑：优先用后台 Markdown，未设置时回退 site.js 的 profile.bio
     request.get('/about').then(res => {
       if (res.code === '200' && res.data && String(res.data).trim()) {

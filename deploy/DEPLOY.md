@@ -76,8 +76,8 @@ sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d 你的域名
 ```
 
-`blog-site.conf` 已配置：`/` 静态 + history fallback、`/api/` 反代到 9999、`/uploads/` 与 `/feed.xml` 反代、
-登录接口限流、常用安全响应头。
+`blog-site.conf` 已配置：`/` 静态 + history fallback、`/api/` 反代到 9999、`/uploads/`、`/feed.xml`、
+`/sitemap.xml`、`/robots.txt` 反代、登录接口限流、常用安全响应头。
 
 ## 6. 备份
 
@@ -97,7 +97,8 @@ sudo crontab -e    # 加入：0 3 * * * /usr/local/bin/mysql-backup.sh
 - [ ] 登录限流生效（连错 5 次应提示临时锁定）。
 - [ ] 评论/注册仍开着**蜜罐+IP 限流**；如不需要公开注册，可先关闭注册入口。
 - [ ] 备份任务跑通一次（手动执行脚本确认产出文件）。
-- [ ] `GET /feed.xml`、图片 `/uploads/...`、后台登录均正常。
+- [ ] `GET /feed.xml`、`GET /sitemap.xml`、`GET /robots.txt`、图片 `/uploads/...`、后台登录均正常。
+- [ ] 把 `blog.site-url` 改成真实域名（RSS、sitemap、robots 里的链接都靠它），改完重启后端。
 
 ## 8. 日常
 

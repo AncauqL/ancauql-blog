@@ -84,6 +84,7 @@
 <script>
 import request from '@/utils/request'
 import { formatDate } from '@/utils/datetime'
+import { setSeo } from '@/utils/seo'
 
 export default {
   name: 'SearchView',
@@ -110,8 +111,18 @@ export default {
     this.loadCategories()
     this.syncFromQuery()
     this.load()
+    this.applySeo()
   },
   methods: {
+    /** 搜索结果页不进搜索引擎索引 */
+    applySeo() {
+      setSeo({
+        title: this.keyword ? `搜索「${this.keyword}」` : '搜索',
+        description: '站内搜索：按关键词查找文章。',
+        path: '/search',
+        noindex: true
+      })
+    },
     syncFromQuery() {
       const q = this.$route.query.q
       this.keyword = typeof q === 'string' ? q.trim() : ''
@@ -231,6 +242,7 @@ export default {
     '$route.query.q'() {
       this.syncFromQuery()
       this.reload()
+      this.applySeo()
     }
   }
 }

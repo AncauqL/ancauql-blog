@@ -180,6 +180,8 @@ import request from '@/utils/request'
 import { renderMarkdown, countWords, readingMinutes } from '@/utils/markdown'
 import { formatDateTime } from '@/utils/datetime'
 import { getStoredUser } from '@/utils/auth'
+import { siteState } from '@/store/site'
+import { setSeo } from '@/utils/seo'
 
 export default {
   name: 'ArticleDetail',
@@ -271,6 +273,7 @@ export default {
         this.loaded = true
         if (res.code === '200') {
           this.article = res.data
+          this.applySeo()
           this.loadComments(id)
           this.loadNeighbors(id)
           this.$nextTick(() => {
@@ -306,6 +309,20 @@ export default {
           this.categoryList = res.data || []
         }
       }).catch(() => {})
+    },
+    /** 文章页 SEO：标题 + 摘要 + 封面（社交卡片用绝对地址） */
+    applySeo() {
+      if (!this.article) {
+        return
+      }
+      setSeo({
+        title: this.article.title,
+        description: this.article.summary || '',
+        image: this.article.cover || siteState.portrait,
+        type: 'article',
+        path: '/post/' + this.article.id,
+        noindex: this.article.status !== 'published'
+      })
     },
     loadTags() {
       // 文章详情只带标签名，点标签筛选需要 id，这里按名字反查

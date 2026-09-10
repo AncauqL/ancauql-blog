@@ -79,6 +79,8 @@ AncauqL_blog/
 
 前台使用独立布局（`FrontLayout`，墨白极简设计）：固定顶部导航（滚动 >20px 加毛玻璃背景；含文章 / 归档 / 关于 + 搜索 + 极简登录入口）+ 页脚 + 回到顶部按钮；移动端为右侧滑入全屏菜单；全局搜索覆盖层（Ctrl+K 打开、ESC 关闭、300ms 防抖走后端站内搜索，展示前 6 条并可「查看全部结果」→ 跳 `/search`）。样式基于 Tailwind 工具类 + 自托管 Inter 字体。
 
+SEO 方面：后端提供 `/sitemap.xml`（供搜索引擎收录）与 `/robots.txt`；前端每个页面在挂载时通过 `utils/seo.js` 设置 `document.title`、description、Open Graph / Twitter 卡片与 canonical，搜索页、404 与草稿详情页标记 `noindex`。
+
 - 首页：`/`
   - Hero 区：大标题（“思考，记录，然后遗忘。”，末段刻意用 `text-neutral-300` 灰色）+ 描述 + 双 CTA 按钮 + 三组统计数字（文章数 / 总阅读来自 `/article/stats`，写作年数按建站年份计算）。
   - “置顶”大卡：后台把文章“置顶”后，首页顶部出现深色大卡展示该文（多篇置顶时取最新一篇；无置顶则不显示）。
@@ -237,11 +239,16 @@ AncauqL_blog/
 - `PUT /about`：保存 AboutMe 正文 Markdown（管理员）。
 
 ### 站点信息接口
-
 - `GET /site`：读取站点信息配置（公开，JSON）。从未保存过后台配置时返回 `{}`，前端按 key 回退 `config/site.js` 的代码默认值。
 - `PUT /site`：保存站点信息（管理员，整段覆盖）。后端做 key 白名单 + 类型校验：未知键、类型不符、年份越界、单条超 500 字、总大小超 64KB 都会返回中文错误。传 `{}` 表示清空后台配置、恢复代码默认值。
   - 顶层字段：`name / author / slogan / identity / startYear / icp / heroTitleLine1 / heroTitleLine2 / heroText / portrait / aboutLines / socials{github,bilibili,email,qq} / profile{name,identity,motto,bio,skills,interests,favorites,journey}`。
   - `skills` 是 `[{label,desc}]`，`journey` 是 `[{period,text}]`。
+
+### SEO 接口
+
+- `GET /sitemap.xml`：站点地图（公开，`application/xml`）。包含首页（priority 1.0）、`/archive`、`/aboutme`、每篇**已发布**文章（带 `lastmod`，取更新时间否则创建时间），以及**有已发布文章**的标签页 `/?tag=标签ID`。链接基址取 `blog.site-url`。
+- `GET /robots.txt`：放行前台；`Disallow` 掉 `/login`、`/register`、`/search`、`/dashboard`、`/settings`、`/site`、`/article/edit`、`/comment`；末尾用绝对地址声明 `Sitemap:`。
+- 两者都不需要登录；部署时由 nginx 反代（见 `deploy/nginx/blog-site.conf`）。
 
 ### 访问统计接口
 
@@ -451,6 +458,7 @@ npm run build
 - 站内搜索当前用 `LIKE '%关键词%'` 扫标题/摘要/正文，文章量上千后建议换 MySQL 全文索引或外部检索。
 - 标签：`/tag/selectAll` 公开读，写操作（新增/改名/删除）需管理员；文章通过 `article_tag` 关联多个标签，标签计数只统计已发布文章；首页支持 `/?tag=标签ID` 直达筛选。
 - 访问统计：前台在路由切换时上报一次（`POST /visit`），因此依赖 JS；管理员浏览与爬虫 UA 不计入。区间 UV 是「按天去重后求和」，跨天同一访客会重复计入；累计 UV 才是全站去重。统计数据只存访客哈希，不含明文 IP。
+- SEO：`/sitemap.xml` 与 `/robots.txt` 由后端生成（改了域名请同步改 `blog.site-url`）；页面的 title / description / OG 卡片是前端运行时写入 DOM 的，不执行 JS 的抓取器只会读到 `public/index.html` 里的静态兜底 meta。
 - 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。
 

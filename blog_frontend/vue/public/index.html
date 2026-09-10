@@ -1,16 +1,31 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="shortcut icon" href="<%= BASE_URL %>favicon.ico">
     <link rel="icon" type="image/svg+xml" href="<%= BASE_URL %>my_logo.svg">
+
+    <!-- 基础 SEO：这里是静态兜底，各页面加载后会由 utils/seo.js 覆盖 -->
     <title><%= htmlWebpackPlugin.options.title %></title>
+    <meta name="description" content="AncauqL 的个人博客：记录学习、生活与思考。">
+    <meta name="author" content="AncauqL">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- 社交分享卡片（默认值，文章页会被覆盖成该文章的标题/摘要/封面） -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="AncauqL">
+    <meta property="og:title" content="AncauqL">
+    <meta property="og:description" content="记录学习、生活与思考。">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AncauqL">
+    <meta name="twitter:description" content="记录学习、生活与思考。">
   </head>
   <body>
     <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong>本站需要开启 JavaScript 才能正常浏览。文章订阅可用 <a href="/feed.xml">RSS</a>，站点地图见 <a href="/sitemap.xml">sitemap.xml</a>。</strong>
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->

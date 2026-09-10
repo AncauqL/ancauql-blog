@@ -13,8 +13,17 @@
 </template>
 
 <script>
+import { setSeo } from '@/utils/seo'
+
 export default {
-  name: 'NotFound'
+  name: 'NotFound',
+  created() {
+    setSeo({
+      title: '页面不存在',
+      description: '你访问的地址可能已失效，或者输入有误。',
+      noindex: true
+    })
+  }
 }
 </script>
 

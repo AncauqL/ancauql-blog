@@ -21,6 +21,12 @@ public interface IArticleService {
     List<Article> selectSearch(String articleTitle);
     List<Article> selectPublishedSearch(String articleTitle);
 
+    /**
+     * 站点地图用：已发布文章的精简字段（id / 标题 / 创建时间 / 更新时间）。
+     * 不带 content，避免为了生成 sitemap 把全文都读出来。
+     */
+    List<Article> selectPublishedBriefs();
+
     /** 归档：已发布文章按年份分组（年份与组内文章均倒序） */
     List<ArchiveGroup> selectArchive();
 

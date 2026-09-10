@@ -184,6 +184,17 @@ public class ArticleServiceImpl implements IArticleService {
     }
 
     @Override
+    public List<Article> selectPublishedBriefs() {
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(Article::getId, Article::getTitle,
+                Article::getCreateTime, Article::getUpdateTime);
+        wrapper.eq(Article::getStatus, "published");
+        wrapper.orderByDesc(Article::getUpdateTime);
+        wrapper.orderByDesc(Article::getId);
+        return articleMapper.selectList(wrapper);
+    }
+
+    @Override
     public List<ArchiveGroup> selectArchive() {
         LambdaQueryWrapper<Article> wrapper = new
                 LambdaQueryWrapper<>();

@@ -270,6 +270,7 @@
 import request, { resolveAsset, API_BASE } from '@/utils/request'
 import { siteState } from '@/store/site'
 import { formatDate } from '@/utils/datetime'
+import { setSeo } from '@/utils/seo'
 
 export default {
   name: 'HomeView',
@@ -323,6 +324,7 @@ export default {
     this.loadTags()
     this.load()
     this.loadStats()
+    this.applySeo()
   },
   mounted() {
     this.observeDividers()
@@ -334,6 +336,18 @@ export default {
   },
   methods: {
     resolveAsset,
+    /** 首页 SEO：站名 + slogan；按标签筛选时描述换成该标签 */
+    applySeo() {
+      const tagName = this.activeTagName
+      setSeo({
+        title: tagName ? `标签 · ${tagName}` : (siteState.name || ''),
+        description: tagName
+            ? `标签「${tagName}」下的全部文章 — ${siteState.slogan || ''}`
+            : (siteState.slogan || siteState.heroText || ''),
+        image: siteState.portrait,
+        path: tagName ? '/?tag=' + this.activeTagId : '/'
+      })
+    },
     load() {
       // 服务端分页；status=published 保证管理员登录后首页看到的也是公开视角
       const params = {
@@ -371,6 +385,8 @@ export default {
       request.get('/tag/selectAll').then(res => {
         if (res.code === '200') {
           this.tagList = (res.data || []).filter(item => item.count > 0)
+          // 标签名到位后补一次 SEO（按 ?tag= 进来时要显示标签名）
+          this.applySeo()
         }
       }).catch(() => {})
     },
@@ -480,6 +496,7 @@ export default {
       this.syncFromQuery()
       this.pageNum = 1
       this.load()
+      this.applySeo()
     }
   }
 }

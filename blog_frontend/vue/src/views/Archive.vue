@@ -35,6 +35,7 @@
 <script>
 import request from '@/utils/request'
 import { formatMonthDay } from '@/utils/datetime'
+import { setSeo } from '@/utils/seo'
 
 export default {
   name: 'Archive',
@@ -51,6 +52,11 @@ export default {
   },
   created() {
     this.load()
+    setSeo({
+      title: '归档',
+      description: '按年份浏览全部文章。',
+      path: '/archive'
+    })
   },
   methods: {
     load() {
