@@ -26,7 +26,6 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/file")
-@CrossOrigin(origins = "*")
 public class FileController {
 
     /** 允许的图片扩展名白名单（不含 svg：svg 可携带脚本，有 XSS 风险） */

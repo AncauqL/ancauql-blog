@@ -22,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @RestController
 @RequestMapping("/comment")
-@CrossOrigin(origins = "*")
 public class CommentController {
 
     /** IP -> [窗口起始毫秒, 窗口内已发条数]，简易滑动窗口限流 */

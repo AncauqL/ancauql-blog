@@ -126,7 +126,8 @@ public class UserServiceImpl implements IUserService {
         }
 
         user.setRole(RoleUtil.normalize(user));
-        if (!PasswordUtil.isEncoded(user.getPassword())) {
+        if (PasswordUtil.needsRehash(user.getPassword())) {
+            // 存量明文 / 无盐 SHA256：登录成功后就地升级为 BCrypt
             user.setPassword(PasswordUtil.encode(password));
             userMapper.updateById(user);
         }

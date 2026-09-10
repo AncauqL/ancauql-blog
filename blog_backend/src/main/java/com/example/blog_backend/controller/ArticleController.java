@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/article")
-@CrossOrigin(origins = "*")
 public class ArticleController {
 
     @Autowired
