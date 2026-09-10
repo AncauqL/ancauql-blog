@@ -138,6 +138,11 @@ public class AuthInterceptor implements HandlerInterceptor {
             return !"GET".equalsIgnoreCase(method);
         }
 
+        // 访问统计：上报（POST）公开，统计看板（GET）需管理员
+        if (path.startsWith("/visit")) {
+            return "GET".equalsIgnoreCase(method);
+        }
+
         return false;
     }
 

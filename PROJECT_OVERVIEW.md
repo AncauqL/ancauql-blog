@@ -146,10 +146,14 @@ AncauqL_blog/
   - 展示全部评论（昵称 / 内容 / 所属文章 / 时间），可删除，或跳转到对应原文页。
 - 关于我编辑：`/about/edit`
   - 管理员用 Markdown 编辑 AboutMe 正文（左编辑右预览，实时渲染），保存到 `about_me` 表；公开页优先显示之，空则回退 site.js。
-- 站点信息：`/site`
-  - 可视化编辑站点信息：站名 / 作者署名 / slogan / 身份一行 / 建站年份 / 备案号、首页 Hero（大标题两行 + 描述 + 首页简介）、关于我（肖像图上传、姓名、身份、座右铭、自我介绍、技术栈、兴趣爱好、喜欢的作品、经历）、社交（GitHub / Bilibili / 邮箱 / QQ）。
+- 站点信息：`/site`  - 可视化编辑站点信息：站名 / 作者署名 / slogan / 身份一行 / 建站年份 / 备案号、首页 Hero（大标题两行 + 描述 + 首页简介）、关于我（肖像图上传、姓名、身份、座右铭、自我介绍、技术栈、兴趣爱好、喜欢的作品、经历）、社交（GitHub / Bilibili / 邮箱 / QQ）。
   - 保存到 `site_config` 表（JSON），前台启动时拉取并覆盖 `config/site.js` 里同名配置；顶栏标记「当前使用后台配置 / 当前使用代码默认值」，可一键「恢复代码默认」。
   - 列表类字段按行填写：一行一条；技术栈 / 经历按 `左 | 右` 写成「名称 | 说明」「时间 | 事件」。
+- 数据统计：`/dashboard`
+  - 顶部六张卡片：今日 PV / 今日 UV / 区间 PV / 区间 UV / 累计 PV / 累计 UV；可切换近 7 / 30 / 90 天。
+  - 访问趋势：纯 CSS 双色柱状图（深色 = PV，浅灰 = UV），鼠标悬停显示该日 PV/UV；缺数据的日期补 0 保持横轴连续。
+  - 热门文章：区间内文章页访问量 Top 10，可点标题跳原文（文章已删除会标注）。
+  - 数据来自 `GET /visit/dashboard`；前台每次路由切换会 `POST /visit` 上报一次，管理员自己的浏览不计入。
 
 ### 登录与权限
 
@@ -239,6 +243,12 @@ AncauqL_blog/
   - 顶层字段：`name / author / slogan / identity / startYear / icp / heroTitleLine1 / heroTitleLine2 / heroText / portrait / aboutLines / socials{github,bilibili,email,qq} / profile{name,identity,motto,bio,skills,interests,favorites,journey}`。
   - `skills` 是 `[{label,desc}]`，`journey` 是 `[{period,text}]`。
 
+### 访问统计接口
+
+- `POST /visit`：前台页面访问上报（公开），请求体 `{path, articleId?}`。服务端规则：管理员自己的浏览忽略；UA 命中爬虫/脚本特征（bot、spider、curl、python-requests 等）忽略；同一访客对同一路径 3 秒内重复上报只记一次；`path` 截断到 200 字。
+  - 访客标识用 `md5(IP + UA + 盐)` 生成，**不保存原始 IP**；反代场景优先读 `X-Forwarded-For` / `X-Real-IP` 的第一段。
+- `GET /visit/dashboard?days=30`：统计看板（管理员）。返回 `{days, overview:{todayPv,todayUv,rangePv,rangeUv,totalPv,totalUv}, daily:[{statDate,pv,uv}], topArticles:[{articleId,title,pv}]}`；`days` 限制在 1–365，`daily` 会把区间内没有数据的日期补成 0。
+
 ### 文件接口
 
 - `POST /file/upload`：图片上传（仅管理员），multipart 字段名 `file`。
@@ -320,6 +330,12 @@ AncauqL_blog/
 - `content`：站点信息 JSON（站名 / Hero / 首页简介 / 社交 / AboutMe 资料），后台「站点信息」页编辑。
 - 前端启动时 `GET /site` 拉取，按 key 覆盖 `config/site.js` 默认值；JSON 损坏或为空时静默回退代码默认值。
 - `update_time`：最后保存时间。
+
+`visit_log` 表（访问统计原始记录）：
+
+- `stat_date`：访问日期（按天分组用）；`path`：访问路径；`article_id`：文章页才有，用于热门文章。
+- `visitor_key`：`md5(IP + UA + 盐)`，用于 UV 去重；**不保存原始 IP**。
+- 由 `POST /visit` 写入，`GET /visit/dashboard` 聚合读取；目前不做自动清理，量大时可定期删除旧行。
 
 `tag` 表（标签）：
 
@@ -434,6 +450,7 @@ npm run build
 - 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容（站内搜索已改用 `/article/search`）。
 - 站内搜索当前用 `LIKE '%关键词%'` 扫标题/摘要/正文，文章量上千后建议换 MySQL 全文索引或外部检索。
 - 标签：`/tag/selectAll` 公开读，写操作（新增/改名/删除）需管理员；文章通过 `article_tag` 关联多个标签，标签计数只统计已发布文章；首页支持 `/?tag=标签ID` 直达筛选。
+- 访问统计：前台在路由切换时上报一次（`POST /visit`），因此依赖 JS；管理员浏览与爬虫 UA 不计入。区间 UV 是「按天去重后求和」，跨天同一访客会重复计入；累计 UV 才是全站去重。统计数据只存访客哈希，不含明文 IP。
 - 游客直接访问草稿文章详情会返回 `403`。
 - `.gitignore` 已忽略 `target/`、`node_modules/`、`dist/`、IDE 配置、日志和环境文件。
 

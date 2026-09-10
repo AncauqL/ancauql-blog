@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-10（前批：…、**标签系统**、**站内搜索升级**；本批：**站点信息后台可编辑**——新增 `site_config` 表与 `GET/PUT /site`（公开读、管理员写），前端 `store/site.js` 把后台配置按 key 合并到 `config/site.js` 默认值上，后台新增「站点信息」页 `/site` 可视化改站名/简介/Hero/肖像/社交/AboutMe 资料）
+最后更新：2026-09-11（前批：…、**标签系统**、**站内搜索升级**、**站点信息后台可编辑**；本批：**访问统计 + 后台数据看板**——新增 `visit_log` 表与 `POST /visit`（前台每次路由切换上报，游客访问才计）+ `GET /visit/dashboard`（管理员，总览/每日趋势/热门文章），后台新增「数据统计」页 `/dashboard`（纯 CSS 柱状图，未引入图表库））
 
 ---
 
@@ -25,7 +25,7 @@ AncauqL_blog/
 ├─ dev-env.bat                ← 本机数据库密码（gitignore，勿提交勿外传）
 ├─ blog_backend/              ← Spring Boot，端口 9999
 │  └─ src/main/java/com/example/blog_backend/
-│     ├─ controller/          ← Hello / Auth / Article / Category / Tag / Comment / About / User / File / Feed
+│     ├─ controller/          ← Hello / Auth / Article / Category / Tag / Comment / About / Site / Visit / User / File / Feed
 │     ├─ service/ + impl/     ← 业务层
 │     ├─ mapper/              ← MyBatis-Plus Mapper（基本无 XML，UserMapper.xml 除外）
 │     ├─ entity/ dto/         ← 实体与传输对象（dto 含 ArchiveGroup / ArticleNeighbors）
@@ -42,7 +42,7 @@ AncauqL_blog/
 │     ├─ utils/markdown.js    ← Markdown 渲染管线（渲染/高亮/消毒/字数统计），渲染必须复用它
 │     ├─ assets/css/markdown.css ← 正文排版样式（markdown.js 引入，详情页+编辑器共用）
 │     ├─ router/index.js      ← 路由 + 登录/角色守卫 + meta.layout
-│     └─ views/               ← HomeView / Archive / SearchView / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / AboutMe / AboutEditor / SiteEditor / AccountSettings / User / Login / Register
+│     └─ views/               ← HomeView / Archive / SearchView / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / Dashboard / AboutMe / AboutEditor / SiteEditor / AccountSettings / User / Login / Register
 └─ database/blog_system.sql   ← 主库脚本（含种子数据）
 ```
 
@@ -69,7 +69,8 @@ AncauqL_blog/
     - 路由全部前台化：`/post/:id` 详情、`/archive`、`/aboutme`、`/login` 均无管理布局
     - 移动端 ≤640px 适配（导航收纳、封面缩小）
   - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
-- [ ] **M4 长期增强**：访问统计、sitemap/SEO（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10；站内搜索 ✅ 2026-09-10；站点配置表 ✅ 2026-09-10）
+- [ ] **M4 长期增强**：sitemap/SEO（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10；站内搜索 ✅ 2026-09-10；站点配置表 ✅ 2026-09-10；访问统计 ✅ 2026-09-11）
+- 访问统计 + 数据看板（2026-09-11 完成）：`visit_log` 表按天存原始记录（只存 `md5(IP+UA+盐)` 访客标识，不落原始 IP）；`POST /visit` 公开上报（前台 `App.vue` 每次路由切换报一次，管理员自己的浏览由后端忽略，爬虫 UA 忽略，同访客同路径 3 秒内去重）；`GET /visit/dashboard?days=` 管理员返回总览(今日/区间/累计 PV·UV) + 每日趋势(缺日补 0) + 热门文章 Top10（文章被删则标题显示「（文章已删除）」）；后台新增「数据统计」页 `/dashboard`（纯 CSS 双色柱状图，未引图表库）
 - 站点信息后台可编辑（2026-09-10 完成）：`site_config` 单行表存 JSON；`GET /site` 公开、`PUT /site` 管理员（key 白名单 + 类型校验，超 64KB 拒绝）；前端 `store/site.js` 维护 `siteState`（`config/site.js` 默认值 + 后台配置按 key 合并，对象一层深合并、数组整段替换），`App.vue` 启动时拉一次；前台四页（FrontLayout/HomeView/AboutMe/AdminLayout）改读 siteState；后台新增「站点信息」页 `/site`（站名/作者/slogan/年份/备案号/Hero 三段/首页简介/肖像上传/AboutMe 资料/社交），支持一键「恢复代码默认」
 - 站内搜索（2026-09-10 完成）：新接口 `GET /article/search`（标题/摘要/正文三处匹配，分页，列表不含 content，游客只搜已发布、管理员能搜到草稿）；前台新增 `/search?q=` 结果页（命中关键词高亮、分类/时间/标签、加载更多）；顶栏 Ctrl+K 覆盖层改为「前 6 条预览 + 查看全部 N 条结果 →」，回车直接进结果页；高亮用切片段渲染，不碰 v-html
 - 标签系统（2026-09-10 完成）：`tag` + `article_tag` 两表（多对多）；`/tag` 接口（公开读、管理员写，重名/空名给出中文报错）；文章可挂多个标签（编辑器多选，可直接输入新名字回车即建）；后台「标签管理」页（`/tag`）增删改 + 各标签已发布文章数；首页标签筛选条（写进地址栏 `/?tag=id`，详情页标签可点进来）；首页卡片、文章管理列表、详情页均显示标签；标签按已发布文章计数（草稿不计）
@@ -191,6 +192,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | DELETE /tag/delete?id= | 管理员 | 删标签，并同时清掉 `article_tag` 里对应关联行 |
 | GET /site | 公开 | 站点信息配置 JSON（站名/Hero/首页简介/社交/AboutMe 资料）；从未保存过返回 `{}`，前端按 key 回退 `config/site.js` 默认值 |
 | PUT /site | 管理员 | 保存站点信息（整段覆盖）；key 白名单 + 类型校验（未知键、类型不符、年份越界、超 64KB 均返回中文错误）；传 `{}` 即清空后台配置、恢复代码默认值 |
+| POST /visit | 公开 | 前台页面访问上报 `{path, articleId?}`：管理员自己的浏览忽略、爬虫 UA 忽略、同访客同路径 3 秒内去重；IP 只用于生成访客标识（md5），不落库 |
+| GET /visit/dashboard?days=30 | 管理员 | 统计看板：`{days, overview:{todayPv,todayUv,rangePv,rangeUv,totalPv,totalUv}, daily:[{statDate,pv,uv}], topArticles:[{articleId,title,pv}]}`；days 限制在 1-365，趋势缺的日期补 0 |
 | GET /category/selectAll 等 | 公开读/管理员写 | 同 article 模式 |
 | /user/** 全部 | 仅超管 | 不可删除/降级当前登录账号 |
 | POST /file/upload | 管理员 | multipart `file`；仅 jpg/jpeg/png/gif/webp（无 svg，防 XSS）；≤10MB；返回相对路径字符串 |
@@ -208,6 +211,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - `tag`: id, name(唯一索引, ≤50), create_time
 - `article_tag`: article_id + tag_id（复合主键，多对多；删标签时后端会清掉这里的关联）
 - `site_config`: id(固定1), content(longtext，站点信息 JSON), update_time（后台「站点信息」页编辑；读坏时回退代码默认值）
+- `visit_log`: id(bigint), stat_date(date，按它分组), path(200), article_id(可空，文章页才有), visitor_key(char32, md5(IP+UA+盐)), create_time；索引 (stat_date) 与 (article_id, stat_date)；**存原始记录**，量大时可定期清理旧行
 
 ## 10. 工作流程（每个任务照此执行）
 
@@ -255,7 +259,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - sitemap.xml 与 SEO meta（依赖 SSR / 预渲染，评估后再定）。
 - 标签系统：✅ 已完成（2026-09-10，见 §3；tag + article_tag 两表 + 前后台 UI）。
 - 评论：✅ 已自建轻量（comment 表、即发即显 + 后台管理，2026-09-09，见 §3）；Giscus 仅作未来上线后的可选替代（需 GitHub 账号 + 公网）。
-- 访问统计：自托管 Umami 或简单 access_log 表。
+- 访问统计：✅ 已完成（2026-09-11，见 §3；`visit_log` 原始记录 + `POST /visit` 上报 + `/dashboard` 看板，未引第三方统计服务）。
 - 站点配置表（site_config）：✅ 已完成（2026-09-10，见 §3；前台信息与 AboutMe 资料后台可视化编辑，代码默认值仍作兜底）。
 - Vue 2 → Vue 3 + Vite + Element Plus 迁移（页面少时做，越拖越贵）。
 
@@ -276,6 +280,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - 站内搜索用 `LIKE '%kw%'` 匹配标题/摘要/正文，正文为 longtext 全表扫；文章上千篇后需要换 MySQL FULLTEXT 或外部索引。关键词里的 `%` / `_` 未转义（只影响匹配范围，无注入风险）。
 - 编辑器左右分栏无滚动同步（体验项，有空再做）。
 - uploads 目录无孤儿图片清理机制（文章删了图还在，暂不处理）。
+- 访问统计存**原始记录**（`visit_log`），没有归档/清理任务：按每天 ~1000 PV 估，一年约 36 万行，暂可承受；再大就加「按天汇总表 + 清理 90 天前原始行」。
+- 统计上报依赖前端 JS（`App.vue` 每次路由切换 POST 一次）：禁用 JS 或用 curl 的访问不会被统计；`rangeUv` 是「按天去重后求和」，跨天同一访客会重复计入（`totalUv` 才是全站去重）。
 - Element UI vendor 包 1.2MB（按需引入或 Vue3 迁移时一并解决）。
 - e2e 起后端时 `DB_PASSWORD` 必须加引号导出：密码含特殊字符，经 grep/cut 管道
   后未加引号会被 shell 拆坏（2026-08-31 踩坑：Access denied）。
@@ -302,3 +308,6 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 搜索结果页高亮用「切片段 + v-for 渲染 span」而不是 `v-html`（2026-09-10） | 铁律禁止未消毒的 v-html；切片段天然不解析 HTML，正文再脏也只会当纯文本显示 |
 | 站点信息用「JSON 单行表 + 前端合并」而不是拆成一堆列（2026-09-10） | skills/journey 这类 `[{a,b}]` 结构拆列很丑，以后加字段还要改表；JSON + 后端 key 白名单/类型校验既灵活又不失控。代价是后端只做类型校验、不做逐字段渲染约束 |
 | 后台配置「按 key 覆盖」代码默认值，数组整段替换（2026-09-10） | 代码默认值让首次部署 / 配置损坏都不会白屏；数组整段替换才能让「清空 aboutLines」真的在前台隐藏版块，而不是被默认值填回来 |
+| 访问统计用「前端主动上报 + 后端自己筛」而不是在 API 拦截器里记（2026-09-11） | SPA 一个页面会打好几个接口（首页要拉文章/分类/标签/统计），按接口记会重复计数且分不清页面；由前端在路由切换时 POST 一次，path/articleId 都准 |
+| 统计忽略管理员自己的浏览，且不存原始 IP（2026-09-11） | 与文章 view_count 的口径一致（作者预览不计数），否则站主自己调试就把数据刷满；访客标识只用 md5(IP+UA+盐)，够去重又不留个人信息 |
+| 看板图表用纯 CSS 柱状图，不引 echarts（2026-09-11） | 只画「近 N 天 PV/UV 双柱 + hover 看数值」，引 echarts 会多 1MB 级依赖；Element UI 里没有现成图表，自己写 40 行 CSS 就够 |

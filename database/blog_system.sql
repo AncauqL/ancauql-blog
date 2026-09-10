@@ -198,6 +198,26 @@ CREATE TABLE `site_config` (
 
 INSERT INTO `site_config` (`id`, `content`) VALUES (1, '');
 
+--
+-- Table structure for table `visit_log`（访问日志：按天存原始记录，用于 PV/UV 统计与热门文章）
+--
+
+DROP TABLE IF EXISTS `visit_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `visit_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `stat_date` date NOT NULL COMMENT '访问日期（服务器时区）',
+  `path` varchar(200) NOT NULL COMMENT '访问路径，如 /、/post/12、/archive',
+  `article_id` int DEFAULT NULL COMMENT '文章ID（非文章页为空）',
+  `visitor_key` char(32) NOT NULL COMMENT '访客标识 md5(IP+UA+盐)，不存原始 IP',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '记录时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_date` (`stat_date`),
+  KEY `idx_article_date` (`article_id`,`stat_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

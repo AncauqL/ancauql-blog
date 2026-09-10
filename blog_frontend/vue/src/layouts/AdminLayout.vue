@@ -30,6 +30,10 @@
             <i class="el-icon-document"></i><span>文章管理</span>
           </el-menu-item>
 
+          <el-menu-item index="/dashboard">
+            <i class="el-icon-data-line"></i><span>数据统计</span>
+          </el-menu-item>
+
           <el-menu-item index="/category">
             <i class="el-icon-folder"></i><span>分类管理</span>
           </el-menu-item>
