@@ -181,6 +181,23 @@ CREATE TABLE `article_tag` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `site_config`（站点信息 JSON，单行 id=1，后台可编辑）
+--
+
+DROP TABLE IF EXISTS `site_config`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `site_config` (
+  `id` int NOT NULL DEFAULT '1' COMMENT '固定为1',
+  `content` longtext COMMENT '站点信息 JSON（站名/简介/社交/AboutMe 资料等）',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+INSERT INTO `site_config` (`id`, `content`) VALUES (1, '');
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

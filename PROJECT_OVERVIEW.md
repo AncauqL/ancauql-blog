@@ -146,6 +146,10 @@ AncauqL_blog/
   - 展示全部评论（昵称 / 内容 / 所属文章 / 时间），可删除，或跳转到对应原文页。
 - 关于我编辑：`/about/edit`
   - 管理员用 Markdown 编辑 AboutMe 正文（左编辑右预览，实时渲染），保存到 `about_me` 表；公开页优先显示之，空则回退 site.js。
+- 站点信息：`/site`
+  - 可视化编辑站点信息：站名 / 作者署名 / slogan / 身份一行 / 建站年份 / 备案号、首页 Hero（大标题两行 + 描述 + 首页简介）、关于我（肖像图上传、姓名、身份、座右铭、自我介绍、技术栈、兴趣爱好、喜欢的作品、经历）、社交（GitHub / Bilibili / 邮箱 / QQ）。
+  - 保存到 `site_config` 表（JSON），前台启动时拉取并覆盖 `config/site.js` 里同名配置；顶栏标记「当前使用后台配置 / 当前使用代码默认值」，可一键「恢复代码默认」。
+  - 列表类字段按行填写：一行一条；技术栈 / 经历按 `左 | 右` 写成「名称 | 说明」「时间 | 事件」。
 
 ### 登录与权限
 
@@ -228,6 +232,13 @@ AncauqL_blog/
 - `GET /about`：AboutMe 正文（Markdown，公开）。AboutMe 页优先用它，为空则回退 site.js。
 - `PUT /about`：保存 AboutMe 正文 Markdown（管理员）。
 
+### 站点信息接口
+
+- `GET /site`：读取站点信息配置（公开，JSON）。从未保存过后台配置时返回 `{}`，前端按 key 回退 `config/site.js` 的代码默认值。
+- `PUT /site`：保存站点信息（管理员，整段覆盖）。后端做 key 白名单 + 类型校验：未知键、类型不符、年份越界、单条超 500 字、总大小超 64KB 都会返回中文错误。传 `{}` 表示清空后台配置、恢复代码默认值。
+  - 顶层字段：`name / author / slogan / identity / startYear / icp / heroTitleLine1 / heroTitleLine2 / heroText / portrait / aboutLines / socials{github,bilibili,email,qq} / profile{name,identity,motto,bio,skills,interests,favorites,journey}`。
+  - `skills` 是 `[{label,desc}]`，`journey` 是 `[{period,text}]`。
+
 ### 文件接口
 
 - `POST /file/upload`：图片上传（仅管理员），multipart 字段名 `file`。
@@ -303,6 +314,12 @@ AncauqL_blog/
 - `nickname`：昵称（≤40 字）。
 - `content`：评论内容（≤2000 字）。
 - `create_time`：发表时间。
+
+`site_config` 表（站点信息，单行 id=1）：
+
+- `content`：站点信息 JSON（站名 / Hero / 首页简介 / 社交 / AboutMe 资料），后台「站点信息」页编辑。
+- 前端启动时 `GET /site` 拉取，按 key 覆盖 `config/site.js` 默认值；JSON 损坏或为空时静默回退代码默认值。
+- `update_time`：最后保存时间。
 
 `tag` 表（标签）：
 
@@ -412,7 +429,7 @@ npm run build
 - 当前已有轻量登录和后台访问控制，但 Token 保存在后端内存中，后端重启后需要重新登录。
 - 文章正文按 Markdown 渲染，渲染结果经 DOMPurify 消毒；写作时可放心使用标准 Markdown 语法。
 - 正文与封面中的站内图片存**相对路径** `/uploads/...`，前端渲染时拼接 `request.js` 导出的 `API_BASE`；部署换域名只改一处。
-- 站点信息集中在 `src/config/site.js`：站点名 / slogan / identity / 首页简介 `aboutLines` / 详情页个人资料 `profile` / 肖像 `portrait` / 社交链接 `socials` / 备案号。社交入口与页脚图标均由这份配置驱动，留空的项自动隐藏。
+- 站点信息集中在 `src/config/site.js`（代码默认值）+ 后台 `site_config` 表（运行时覆盖）：站点名 / slogan / identity / 首页简介 `aboutLines` / 详情页个人资料 `profile` / 肖像 `portrait` / 社交链接 `socials` / 备案号；前台统一读 `src/store/site.js` 的 `siteState`（`App.vue` 启动时 `GET /site` 合并）。社交入口与页脚图标均由这份配置驱动，留空的项自动隐藏；后台「站点信息」页可可视化修改，无需改代码。
 - RSS 订阅源 `/feed.xml` 的站点标题与前台基址配置在后端 `application.yml` 的 `blog.site-title` / `blog.site-url`（站点地址可用环境变量 `BLOG_SITE_URL` 覆盖）。
 - 首页与文章管理已是服务端分页；`selectAll` / `selectSearch` 旧接口仍返回全文，仅保留兼容（站内搜索已改用 `/article/search`）。
 - 站内搜索当前用 `LIKE '%关键词%'` 扫标题/摘要/正文，文章量上千后建议换 MySQL 全文索引或外部检索。

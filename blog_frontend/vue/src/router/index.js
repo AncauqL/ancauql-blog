@@ -121,6 +121,16 @@ const routes = [
     }
   },
   {
+    path: '/site',
+    name: 'SiteEditor',
+    component: () => import('../views/SiteEditor.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['SUPER_ADMIN', 'ADMIN'],
+      layout: 'admin'
+    }
+  },
+  {
     path: '*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue')

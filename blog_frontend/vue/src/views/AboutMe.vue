@@ -111,14 +111,14 @@
 
 <script>
 import request from '@/utils/request'
-import { SITE } from '@/config/site'
+import { siteState } from '@/store/site'
 import { renderMarkdown } from '@/utils/markdown'
 
 export default {
   name: 'AboutMe',
   data() {
     return {
-      site: SITE,
+      site: siteState,
       aboutContent: ''
     }
   },

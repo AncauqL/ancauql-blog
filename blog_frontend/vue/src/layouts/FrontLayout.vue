@@ -194,7 +194,7 @@
 </template>
 
 <script>
-import { SITE } from '@/config/site'
+import { siteState } from '@/store/site'
 import { getStoredUser, isManager, logout } from '@/utils/auth'
 import request, { API_BASE } from '@/utils/request'
 import { formatDate } from '@/utils/datetime'
@@ -203,7 +203,7 @@ export default {
   name: 'FrontLayout',
   data() {
     return {
-      site: SITE,
+      site: siteState,
       currentUser: getStoredUser(),
       categoryList: [],
       searchQuery: '',

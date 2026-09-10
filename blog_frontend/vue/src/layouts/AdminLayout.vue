@@ -46,6 +46,10 @@
             <i class="el-icon-edit-outline"></i><span>关于我编辑</span>
           </el-menu-item>
 
+          <el-menu-item index="/site">
+            <i class="el-icon-office-building"></i><span>站点信息</span>
+          </el-menu-item>
+
           <el-menu-item index="/settings">
             <i class="el-icon-setting"></i><span>账号设置</span>
           </el-menu-item>
@@ -68,14 +72,14 @@
 </template>
 
 <script>
-import { SITE } from '@/config/site'
+import { siteState } from '@/store/site'
 import { getStoredUser, isSuperAdmin, logout, roleText } from '@/utils/auth'
 
 export default {
   name: 'AdminLayout',
   data() {
     return {
-      site: SITE,
+      site: siteState,
       currentUser: getStoredUser()
     }
   },

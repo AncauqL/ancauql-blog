@@ -268,14 +268,14 @@
 
 <script>
 import request, { resolveAsset, API_BASE } from '@/utils/request'
-import { SITE } from '@/config/site'
+import { siteState } from '@/store/site'
 import { formatDate } from '@/utils/datetime'
 
 export default {
   name: 'HomeView',
   data() {
     return {
-      site: SITE,
+      site: siteState,
       articleList: [],
       categoryList: [],
       tagList: [],

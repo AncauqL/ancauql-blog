@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-10（前批：站点信息/AboutMe/真实社交/RSS、置顶、404、懒加载、datetime、归档链接、.env、阅读缩放、KaTeX、可收起目录、自建轻量评论、用户体系 USER、admin 邮箱登录与账号设置、AboutMe 后台可编辑、上线安全硬化（代码侧，见 §11-⑥）、**标签系统**；本批：**站内搜索升级**——`GET /article/search` 分页搜标题/摘要/正文（列表不含 content），新增 `/search` 结果页（关键词高亮、加载更多），顶栏 Ctrl+K 覆盖层改走新接口并支持「查看全部结果」）
+最后更新：2026-09-10（前批：…、**标签系统**、**站内搜索升级**；本批：**站点信息后台可编辑**——新增 `site_config` 表与 `GET/PUT /site`（公开读、管理员写），前端 `store/site.js` 把后台配置按 key 合并到 `config/site.js` 默认值上，后台新增「站点信息」页 `/site` 可视化改站名/简介/Hero/肖像/社交/AboutMe 资料）
 
 ---
 
@@ -35,13 +35,14 @@ AncauqL_blog/
 │  └─ src/
 │     ├─ App.vue              ← 顶层布局切换器（按 $route.meta.layout 选前后台布局）
 │     ├─ layouts/             ← FrontLayout（顶栏+页脚）/ AdminLayout（侧边栏）
-│     ├─ config/site.js       ← 站名/作者/slogan/备案号常量
+│     ├─ config/site.js       ← 站点信息【代码默认值】（站名/简介/Hero/社交/AboutMe 资料）
+│     ├─ store/site.js        ← 站点信息运行时状态 siteState（默认值 + 后台 site_config 合并）
 │     ├─ utils/request.js     ← axios 实例，导出 API_BASE / resolveAsset
 │     ├─ utils/auth.js        ← 登录态工具（getStoredUser / isManager / logout 等）
 │     ├─ utils/markdown.js    ← Markdown 渲染管线（渲染/高亮/消毒/字数统计），渲染必须复用它
 │     ├─ assets/css/markdown.css ← 正文排版样式（markdown.js 引入，详情页+编辑器共用）
 │     ├─ router/index.js      ← 路由 + 登录/角色守卫 + meta.layout
-│     └─ views/               ← HomeView / Archive / SearchView / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / AboutMe / AboutEditor / AccountSettings / User / Login / Register
+│     └─ views/               ← HomeView / Archive / SearchView / ArticleDetail / ArticleEditor / Article / Category / Tag / CommentAdmin / AboutMe / AboutEditor / SiteEditor / AccountSettings / User / Login / Register
 └─ database/blog_system.sql   ← 主库脚本（含种子数据）
 ```
 
@@ -68,7 +69,8 @@ AncauqL_blog/
     - 路由全部前台化：`/post/:id` 详情、`/archive`、`/aboutme`、`/login` 均无管理布局
     - 移动端 ≤640px 适配（导航收纳、封面缩小）
   - 注：原规划项 M3-⑤「安全硬化 + 部署上线」已于 2026-09-03 按站主意愿移除，不再执行（背景见 §13 决策表）
-- [ ] **M4 长期增强**：统计、站点配置表（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10；站内搜索 ✅ 2026-09-10）
+- [ ] **M4 长期增强**：访问统计、sitemap/SEO（RSS ✅ 2026-09-03；评论 ✅ 2026-09-09；标签 ✅ 2026-09-10；站内搜索 ✅ 2026-09-10；站点配置表 ✅ 2026-09-10）
+- 站点信息后台可编辑（2026-09-10 完成）：`site_config` 单行表存 JSON；`GET /site` 公开、`PUT /site` 管理员（key 白名单 + 类型校验，超 64KB 拒绝）；前端 `store/site.js` 维护 `siteState`（`config/site.js` 默认值 + 后台配置按 key 合并，对象一层深合并、数组整段替换），`App.vue` 启动时拉一次；前台四页（FrontLayout/HomeView/AboutMe/AdminLayout）改读 siteState；后台新增「站点信息」页 `/site`（站名/作者/slogan/年份/备案号/Hero 三段/首页简介/肖像上传/AboutMe 资料/社交），支持一键「恢复代码默认」
 - 站内搜索（2026-09-10 完成）：新接口 `GET /article/search`（标题/摘要/正文三处匹配，分页，列表不含 content，游客只搜已发布、管理员能搜到草稿）；前台新增 `/search?q=` 结果页（命中关键词高亮、分类/时间/标签、加载更多）；顶栏 Ctrl+K 覆盖层改为「前 6 条预览 + 查看全部 N 条结果 →」，回车直接进结果页；高亮用切片段渲染，不碰 v-html
 - 标签系统（2026-09-10 完成）：`tag` + `article_tag` 两表（多对多）；`/tag` 接口（公开读、管理员写，重名/空名给出中文报错）；文章可挂多个标签（编辑器多选，可直接输入新名字回车即建）；后台「标签管理」页（`/tag`）增删改 + 各标签已发布文章数；首页标签筛选条（写进地址栏 `/?tag=id`，详情页标签可点进来）；首页卡片、文章管理列表、详情页均显示标签；标签按已发布文章计数（草稿不计）
 - 体验/工程细节（2026-09-03 完成）：文章可后台“置顶”(is_top)→首页“置顶”大卡；优雅 404 页；文章图片懒加载；时间解析统一到 `utils/datetime.js`；归档条目改 `<router-link>`；`API_BASE` 走 `.env`(VUE_APP_API_BASE，见 .env.example)；前台阅读缩放(1.1，正文详情页再 1.1)
@@ -187,6 +189,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | GET /tag/selectAll | 公开 | 标签列表 `[{id,name,count}]`（count=该标签下**已发布**文章数），按 name 升序 |
 | POST /tag | 管理员 | 新建/改名 `{id?, name}`；空名、超 50 字、重名返回中文错误 msg |
 | DELETE /tag/delete?id= | 管理员 | 删标签，并同时清掉 `article_tag` 里对应关联行 |
+| GET /site | 公开 | 站点信息配置 JSON（站名/Hero/首页简介/社交/AboutMe 资料）；从未保存过返回 `{}`，前端按 key 回退 `config/site.js` 默认值 |
+| PUT /site | 管理员 | 保存站点信息（整段覆盖）；key 白名单 + 类型校验（未知键、类型不符、年份越界、超 64KB 均返回中文错误）；传 `{}` 即清空后台配置、恢复代码默认值 |
 | GET /category/selectAll 等 | 公开读/管理员写 | 同 article 模式 |
 | /user/** 全部 | 仅超管 | 不可删除/降级当前登录账号 |
 | POST /file/upload | 管理员 | multipart `file`；仅 jpg/jpeg/png/gif/webp（无 svg，防 XSS）；≤10MB；返回相对路径字符串 |
@@ -203,6 +207,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - `about_me`: id(固定1), content(longtext, AboutMe 正文 Markdown), update_time
 - `tag`: id, name(唯一索引, ≤50), create_time
 - `article_tag`: article_id + tag_id（复合主键，多对多；删标签时后端会清掉这里的关联）
+- `site_config`: id(固定1), content(longtext，站点信息 JSON), update_time（后台「站点信息」页编辑；读坏时回退代码默认值）
 
 ## 10. 工作流程（每个任务照此执行）
 
@@ -251,7 +256,7 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - 标签系统：✅ 已完成（2026-09-10，见 §3；tag + article_tag 两表 + 前后台 UI）。
 - 评论：✅ 已自建轻量（comment 表、即发即显 + 后台管理，2026-09-09，见 §3）；Giscus 仅作未来上线后的可选替代（需 GitHub 账号 + 公网）。
 - 访问统计：自托管 Umami 或简单 access_log 表。
-- 站点配置表（site_config），关于我页面后台可编辑。
+- 站点配置表（site_config）：✅ 已完成（2026-09-10，见 §3；前台信息与 AboutMe 资料后台可视化编辑，代码默认值仍作兜底）。
 - Vue 2 → Vue 3 + Vite + Element Plus 迁移（页面少时做，越拖越贵）。
 
 ### ⑥ 上线安全硬化与部署（✅ 代码侧已完成 2026-09-09；服务器操作待站主执行）
@@ -295,3 +300,5 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 文章保存时按“传了 tagIds 才更新标签”语义（2026-09-10） | 后台列表的“置顶/取消置顶”只 POST `{id, top}`，若不判断就会把文章标签清空 |
 | 搜索单独开 `GET /article/search` 而不是扩 `selectPage`（2026-09-10） | selectPage 的 `articleTitle` 语义是「只搜标题」，两者混在一起会让列表接口越来越难懂；搜索要正文匹配且结果页更重，独立接口能各自演进 |
 | 搜索结果页高亮用「切片段 + v-for 渲染 span」而不是 `v-html`（2026-09-10） | 铁律禁止未消毒的 v-html；切片段天然不解析 HTML，正文再脏也只会当纯文本显示 |
+| 站点信息用「JSON 单行表 + 前端合并」而不是拆成一堆列（2026-09-10） | skills/journey 这类 `[{a,b}]` 结构拆列很丑，以后加字段还要改表；JSON + 后端 key 白名单/类型校验既灵活又不失控。代价是后端只做类型校验、不做逐字段渲染约束 |
+| 后台配置「按 key 覆盖」代码默认值，数组整段替换（2026-09-10） | 代码默认值让首次部署 / 配置损坏都不会白屏；数组整段替换才能让「清空 aboutLines」真的在前台隐藏版块，而不是被默认值填回来 |

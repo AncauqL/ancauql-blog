@@ -1,0 +1,46 @@
+package com.example.blog_backend.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.time.LocalDateTime;
+
+/**
+ * 站点信息配置（单行，id 固定为 1），content 存 JSON 文本。
+ * 前端 site.js 里那份是代码默认值，这里的配置按 key 覆盖它。
+ */
+@TableName("site_config")
+public class SiteConfig {
+
+    @TableId(type = IdType.INPUT)
+    private Integer id;
+
+    private String content;
+
+    private LocalDateTime updateTime;
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+}

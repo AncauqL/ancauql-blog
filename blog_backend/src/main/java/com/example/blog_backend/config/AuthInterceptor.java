@@ -133,6 +133,11 @@ public class AuthInterceptor implements HandlerInterceptor {
             return !"GET".equalsIgnoreCase(method);
         }
 
+        // 站点信息：公开读（前台启动时拉取），保存需管理员
+        if (path.startsWith("/site")) {
+            return !"GET".equalsIgnoreCase(method);
+        }
+
         return false;
     }
 
