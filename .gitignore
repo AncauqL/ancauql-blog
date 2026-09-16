@@ -31,6 +31,7 @@ Thumbs.db
 # env
 .env
 dev-env.bat
+deploy/deploy.env
 
 # uploaded images (local content, not source)
 /uploads/

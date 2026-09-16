@@ -4,6 +4,26 @@
 > 用 nginx 做同域反代（前端走 `/api`，避免跨域并顺带解决 CORS），并启用 HTTPS。
 > **服务器操作由站主执行或明确授权后进行。**
 
+## 快捷方式：deploy.sh（推荐）
+
+`deploy/deploy.sh`（本机 Git Bash 运行）已把下面 §1–§6 的机械步骤自动化，
+本文档余下章节是它的"手动版"与原理说明：
+
+```bash
+cp deploy/deploy.env.example deploy/deploy.env   # 填服务器地址与域名（已 gitignore）
+bash deploy/deploy.sh init      # 首次：装依赖/建库导本机数据/配 systemd+nginx/上传/启动
+bash deploy/deploy.sh cert      # 域名解析生效后：certbot 证书 + 切 HTTPS + 80→443 跳转
+bash deploy/deploy.sh update    # 日常更新：构建 + 上传 + 重启（可 update front / back）
+bash deploy/deploy.sh logs      # 跟随后端日志；status 查看运行状态
+```
+
+`init` 会自动完成：apt 装包、`blog` 运行用户与目录、`blog_app` 低权限库账号（随机密码）、
+导入本机 MySQL 全量数据（含账号与文章）、`/etc/blog/blog.env`、systemd、nginx（先 HTTP）、
+上传 jar/dist/uploads、启动与探活、每日 3 点备份 cron。**可安全重跑**（库里有表则跳过导入）。
+
+仍需人工执行：域名 A 记录、`cert`（certbot 首次要交互输邮箱）、防火墙 `ufw`、
+`mysql_secure_installation`、以及 §7 检查清单的逐项确认。
+
 ## 0. 前置
 
 - Ubuntu 22.04/24.04，已装：`openjdk-17-jre-headless`、`nginx`、`mysql-server`、`git`、`nodejs`(构建前端用，可只在本地构建)。
@@ -68,7 +88,7 @@ sudo systemctl status blog-backend
 
 ```bash
 sudo cp deploy/nginx/00-blog-limit.conf /etc/nginx/conf.d/
-sudo cp deploy/nginx/blog-site.conf /etc/nginx/conf.d/      # 记得改 server_name / 证书路径
+sudo cp deploy/nginx/blog-site.conf /etc/nginx/conf.d/      # 记得改 server_name / 证书路径（deploy.sh cert 会自动替换域名）
 sudo nginx -t && sudo systemctl reload nginx
 
 # 证书（首次）

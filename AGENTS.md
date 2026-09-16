@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-11（前批：…、**标签系统**、**站内搜索升级**、**站点信息后台可编辑**、**访问统计 + 数据看板**、**SEO（sitemap/robots + meta）**；本批：**评论增强**——`comment` 表加 `parent_id`/`reply_to_nickname`/`like_count` + 新增 `comment_like` 去重表，评论支持两级回复与点赞（未登录也能点赞），`POST /comment/like` 公开、`GET /comment` 回填 `liked`，后台评论管理页显示类型/点赞数，删除顶层评论会连带删回复与点赞）
+最后更新：2026-09-16（前批：…、**SEO（sitemap/robots + meta）**、**评论增强**；本批：**部署脚本 `deploy/deploy.sh`**——本机 Git Bash 一键部署/更新 Ubuntu 服务器：`init`（装依赖/建 blog_app 低权限账号/导本机全量数据/systemd/nginx HTTP/上传/探活/每日备份 cron，可安全重跑）、`update [front|back|all]`（构建+上传+重启）、`cert`（certbot 证书+切 HTTPS+80→443）、`logs`/`status`；配置走 `deploy/deploy.env`（gitignore）。顺手修复 nginx 配置两个 bug：`/api/`、`/uploads/` 改 `^~` 前缀（原会被静态资源正则抢占导致图片 404）、`index.html` 禁缓存（防发版后浏览器用旧页面））
 
 ---
 
@@ -23,6 +23,8 @@ AncauqL_blog/
 ├─ ITERATION_BASE.md          ← 本地迭代笔记（已 gitignore，只在本机存在）
 ├─ start-dev.bat / stop-dev.bat / dev-env.example.bat  ← 一键启动/停止脚本（GBK 编码！）
 ├─ dev-env.bat                ← 本机数据库密码（gitignore，勿提交勿外传）
+├─ deploy/                    ← 服务器部署材料：deploy.sh（一键部署/更新脚本）+ deploy.env.example
+│                                + DEPLOY.md + nginx/ + systemd/ + mysql/ + backup/
 ├─ blog_backend/              ← Spring Boot，端口 9999
 │  └─ src/main/java/com/example/blog_backend/
 │     ├─ controller/          ← Hello / Auth / Article / Category / Tag / Comment / About / Site / Visit / User / File / Feed / Seo
@@ -146,6 +148,12 @@ powershell -NoProfile -Command 'Get-NetTCPConnection -LocalPort 9998 -State List
 
 # MySQL 查询（密码不进命令行历史）
 MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,status FROM article;"
+
+# 服务器部署/更新（Ubuntu；配置文件 deploy/deploy.env 本机自建，不提交）
+bash deploy/deploy.sh init              # 首次部署（装依赖/建库导数据/systemd/nginx/上传/启动）
+bash deploy/deploy.sh update            # 日常更新（可 update front / update back）
+bash deploy/deploy.sh cert              # 域名解析生效后：证书 + HTTPS + 强制跳转
+bash deploy/deploy.sh logs              # 跟随后端日志；status 查看运行状态
 ```
 
 ## 7. 代码约定（必须遵守的既有风格）
@@ -279,7 +287,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - ④ **全局异常兜底 + CORS 收敛**：已做——`GlobalExceptionHandler` 统一返回 `Result.error`（不再裸抛堆栈）；CORS 改为 `blog.cors-allowed-origins` 白名单（env `CORS_ALLOWED_ORIGINS`），各控制器 `@CrossOrigin("*")` 已全部移除 ✅
 - ⑤ **数据库密码**：`application.yml` 不再提供默认密码（必须由 env 提供）；低权限建号脚本 `deploy/mysql/create-app-user.sql` ✅（账号需在服务器上创建）
 - ⑥ **部署材料**：`deploy/` 下含 `DEPLOY.md`（步骤+检查清单）、nginx（同域反代 `/api`、`/uploads`、`/feed.xml`、登录限流、安全头）、`systemd/blog-backend.service`、`backup/mysql-backup.sh`；**实际服务器操作由站主执行或明确授权后进行**
-- **待办（服务器侧）**：建 `blog_app` 低权限账号 → 配 `/etc/blog/blog.env`(600) → 部署 jar+dist → systemd+nginx+HTTPS → 手动跑一次备份验证 → 过一遍 DEPLOY.md 检查清单
+- ⑦ **一键部署脚本**（2026-09-16）：`deploy/deploy.sh` 自动化 ①–⑥ 的机械步骤——`init`（apt 装包、blog 用户/目录、`blog_app` 随机密码低权限账号、导入本机 MySQL 全量数据、`/etc/blog/blog.env`(600)、systemd、nginx HTTP 引导配置、上传 jar/dist/uploads、探活、每日备份 cron）、`update [front|back|all]`、`cert`（certbot 证书 + 切仓库完整 HTTPS 配置 + 80→443）、`logs`/`status`。目标信息放 `deploy/deploy.env`（模板 `deploy.env.example`，gitignore）。服务器仅跑 Ubuntu 22.04/24.04 + 免密 sudo 登录用户 ✅
+- **待办（服务器侧，站主执行）**：填 `deploy/deploy.env` → `bash deploy/deploy.sh init` → 域名 A 记录 → `bash deploy/deploy.sh cert` → `ufw` 防火墙 → `mysql_secure_installation` → 过一遍 DEPLOY.md 检查清单。脚本远程流程尚未在真服务器上实跑过（2026-09-16 本机只验证了构建/错误路径/密码提取），首跑时如遇报错回来改脚本并同步本文件
 
 ## 12. 已知问题 / 技术债（接手时先看这里）
 
@@ -298,6 +307,10 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 - Element UI vendor 包 1.2MB（按需引入或 Vue3 迁移时一并解决）。
 - e2e 起后端时 `DB_PASSWORD` 必须加引号导出：密码含特殊字符，经 grep/cut 管道
   后未加引号会被 shell 拆坏（2026-08-31 踩坑：Access denied）。
+- 部署无自动 schema 迁移（无 Flyway）：`deploy.sh init` 只做首次全量导入；以后本机改了表结构，
+  需手动在服务器执行对应 ALTER（或重导）并同步 `database/blog_system.sql`。
+- `deploy.sh` 的远程流程（init/update/cert 在真服务器上的表现）尚未实跑验证过；
+  本机已验证：bash -n、help、build（真实打包）、缺配置报错、dev-env.bat 密码提取、SSH 失败路径。
 
 ## 13. 关键决策历史（为什么是现在这样）
 
@@ -329,3 +342,6 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 | 评论回复只做两级：`parent_id` 一律指向顶层评论（2026-09-11） | 个人博客不需要无限嵌套；两级在手机上可读性最好，前端渲染和后端排序都简单（列表接口直接按「顶层 + 紧跟其回复」返回，前端不用拼树） |
 | 点赞允许未登录，用访客标识去重（2026-09-11） | 访客随手点赞门槛最低；`comment_like(comment_id, visitor_key)` 复合主键让「再点即取消」实现干净，`like_count` 用 SQL 原子加减避免并发丢计数 |
 | 删除顶层评论连带删回复（2026-09-11） | 线程归属顶层作者，留一半回复会变成孤儿；前端确认框明确提示后果，站主在后台也有同样提示 |
+| 部署走「本机构建 + scp/tar 上传产物」，服务器不装 Node/Maven（2026-09-16） | 服务器只跑 JRE/nginx/MySQL，面小好维护；产物在开发机验证过才上服务器，避免服务器上构建的不确定性；git push 仍被铁律禁止，产物直传不依赖远程仓库 |
+| deploy.sh 用 bash 而不是 bat，init 先 HTTP 引导、cert 再切 HTTPS（2026-09-16） | 脚本只在 Git Bash 里跑（服务器不需要脚本本体）；certbot 签证书要求 80 端口的 ACME 路径先可用，两阶段让「没域名也能先跑 HTTP」与「有域名一键 HTTPS」都成立；init 幂等可重跑（库有表跳过导入、密码复用 blog.env） |
+| nginx 的 /api/、/uploads/ 用 `^~` 前缀匹配 + index.html 禁缓存（2026-09-16） | 修复原配置 bug：静态资源正则 location 会抢占普通前缀 location，导致 `/uploads/x.png` 404；index.html 不禁缓存则发版后浏览器可能一直用旧入口页（hash 文件名的意义就没了） |

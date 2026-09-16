@@ -35,6 +35,14 @@ AncauqL_blog/
 │     ├─ utils/markdown.js       # Markdown 渲染管线
 │     ├─ views/                  # 页面组件
 │     └─ assets/                 # 样式与 logo
+├─ deploy/                       # 服务器部署材料（Ubuntu）
+│  ├─ deploy.sh                  # 一键部署/更新脚本（本机 Git Bash 运行：init/update/cert/logs）
+│  ├─ deploy.env.example         # 部署目标配置模板（复制为 deploy.env 填写，已 gitignore）
+│  ├─ DEPLOY.md                  # 部署步骤与上线检查清单
+│  ├─ nginx/                     # 反代+HTTPS 配置（00-blog-limit / blog-site / 公共头）
+│  ├─ systemd/                   # blog-backend.service（沙箱加固）
+│  ├─ mysql/                     # 低权限应用账号建号 SQL
+│  └─ backup/                    # MySQL 每日备份脚本
 └─ database/
    └─ blog_system.sql            # 当前博客主库脚本
 ```
@@ -375,6 +383,23 @@ SEO 方面：后端提供 `/sitemap.xml`（供搜索引擎收录）与 `/robots.
 - 双击 `stop-dev.bat` 停止服务：按「端口 + 进程名」双重匹配，只停 9999 端口的 java 和 8080/8081 端口的 node；端口被其他软件占用时会跳过，不会误杀。
 - 端口约定：前端 8080（被占用时 Vue CLI 自动顺延到 8081 等，以前端窗口输出为准）、后端 9999、MySQL 3306。
 - 脚本采用 GBK 编码 + CRLF 行尾，保证中文 Windows 控制台正常显示；编辑时请保持该编码。
+
+### 0.5 部署到公网服务器（Ubuntu）
+
+在本机 Git Bash 中使用 `deploy/deploy.sh`（详细说明见 `deploy/DEPLOY.md`）：
+
+```bash
+cp deploy/deploy.env.example deploy/deploy.env   # 填 DEPLOY_HOST（用户@服务器IP）与 DEPLOY_DOMAIN
+bash deploy/deploy.sh init      # 首次：装依赖/建 blog_app 低权限账号/导入本机全量数据/
+                                #      写 /etc/blog/blog.env、systemd、nginx(HTTP)/上传产物/启动探活
+bash deploy/deploy.sh cert      # 域名解析生效后：certbot 证书 + 切换完整 HTTPS 配置 + 80→443 跳转
+bash deploy/deploy.sh update    # 日常更新：构建+上传+重启（update front 只发前端、back 只发后端）
+bash deploy/deploy.sh logs      # 跟随后端日志；status 查看运行状态
+```
+
+- 产物都在本机构建（服务器只需 JRE/nginx/MySQL），jar 与 dist 上传后 systemd 常驻、开机自启。
+- `init` 可安全重跑：数据库已有表会跳过导入；`blog_app` 密码随机生成并只存在服务器端 env 文件（600）。
+- 后续本机改了表结构（无自动迁移工具），需手动在服务器执行对应 ALTER 并同步 `database/blog_system.sql`。
 
 ### 1. 准备数据库
 
