@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-21（前批：…、**评论增强**、**部署脚本 deploy.sh**；本批：**✅ 部署已上线（IP 模式）**——腾讯云轻量 Ubuntu 24.04（82.156.129.27），`deploy.sh init` 首跑实跑成功：apt 装依赖、blog_app 随机密码、本机数据全量导入、systemd+nginx、产物上传、探活全通过；公网 http://82.156.129.27/ → 200，/api/hello、/sitemap.xml 正常，admin 可登录。服务器另有既有服务：Cloudreve 全家桶（docker：cloudreve/postgresql/redis，nginx.conf 内置 reve.ancauql.com 443 反代）+ WireGuard(51820)，部署零冲突（博客走 conf.d/，nginx 按 server_name 区分）。**注意**：①服务器实际 nginx 配置在 nginx.conf 主文件内（sites-enabled/conf.d 原为空），博客配置在 conf.d/blog-site.conf，将来改 reve 配置别动 nginx.conf 的 http 块结构；②博客目前 HTTP（域名 ancauql.com 未备案且服务器购买不足 3 个月暂不能提交备案，期满后走腾讯云备案 → blog.ancauql.com A 记录 → deploy.env 改回域名重跑 init + cert）；③站主 SSH 密码已在聊天中出现，建议尽快在腾讯云控制台重置；④内存 3.6G，当前剩 ~2.2G 可用，够用但别再多堆大服务）
+最后更新：2026-09-21（前批：…、**部署脚本 deploy.sh**、**✅ 部署已上线（IP 模式）**；本批：**deploy.sh pull 反向同步**（服务器整库+uploads 拉回本机，已实测一致）+ **根目录新增 COMMANDS.md 站主新手指令手册**（两台机器总印象/start-dev/update·pull/logs/Git 生存包/FAQ；面向站主，agent 改命令入口时须同步它）——本批站主明确授权 push，本地 main 已推送到 origin。腾讯云轻量 Ubuntu 24.04（82.156.129.27），公网 http://82.156.129.27/ 正常。服务器另有既有服务：Cloudreve 全家桶（docker：cloudreve/postgresql/redis，nginx.conf 内置 reve.ancauql.com 443 反代）+ WireGuard(51820)，部署零冲突（博客走 conf.d/，nginx 按 server_name 区分）。**注意**：①服务器实际 nginx 配置在 nginx.conf 主文件内（sites-enabled/conf.d 原为空），博客配置在 conf.d/blog-site.conf，将来改 reve 配置别动 nginx.conf 的 http 块结构；②博客目前 HTTP（域名 ancauql.com 未备案且服务器购买不足 3 个月暂不能提交备案，期满后走腾讯云备案 → blog.ancauql.com A 记录 → deploy.env 改回域名重跑 init + cert）；③站主 SSH 密码已在聊天中出现，建议尽快在腾讯云控制台重置；④内存 3.6G，当前剩 ~2.2G 可用，够用但别再多堆大服务）
 
 ---
 
@@ -21,6 +21,7 @@ AncauqL_blog/
 ├─ CLAUDE.md                  ← Claude Code 自动加载的入口，指向本文件
 ├─ PROJECT_OVERVIEW.md        ← 正式项目说明（功能/接口/启动），改功能后必须同步
 ├─ ITERATION_BASE.md          ← 本地迭代笔记（已 gitignore，只在本机存在）
+├─ COMMANDS.md                ← 站主新手版常用指令速查（双击启动/update/pull/Git/FAQ）；改命令入口时同步此文件
 ├─ start-dev.bat / stop-dev.bat / dev-env.example.bat  ← 一键启动/停止脚本（GBK 编码！）
 ├─ dev-env.bat                ← 本机数据库密码（gitignore，勿提交勿外传）
 ├─ deploy/                    ← 服务器部署材料：deploy.sh（一键部署/更新脚本）+ deploy.env.example

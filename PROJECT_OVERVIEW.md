@@ -43,6 +43,7 @@ AncauqL_blog/
 │  ├─ systemd/                   # blog-backend.service（沙箱加固）
 │  ├─ mysql/                     # 低权限应用账号建号 SQL
 │  └─ backup/                    # MySQL 每日备份脚本
+├─ COMMANDS.md                   # 站主新手版常用指令速查（启动/发布/数据同步/FAQ）
 └─ database/
    └─ blog_system.sql            # 当前博客主库脚本
 ```
