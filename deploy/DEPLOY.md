@@ -14,6 +14,7 @@ cp deploy/deploy.env.example deploy/deploy.env   # 填服务器地址与域名�
 bash deploy/deploy.sh init      # 首次：装依赖/建库导本机数据/配 systemd+nginx/上传/启动
 bash deploy/deploy.sh cert      # 域名解析生效后：certbot 证书 + 切 HTTPS + 80→443 跳转
 bash deploy/deploy.sh update    # 日常更新：构建 + 上传 + 重启（可 update front / back）
+bash deploy/deploy.sh pull      # 反向同步：服务器数据(整库+图片)拉回本机，覆盖本机（-y 免确认）
 bash deploy/deploy.sh logs      # 跟随后端日志；status 查看运行状态
 ```
 
