@@ -24,6 +24,12 @@ bash deploy/deploy.sh logs      # 跟随后端日志；status 查看运行状态
 仍需人工执行：域名 A 记录、`cert`（certbot 首次要交互输邮箱）、防火墙 `ufw`、
 `mysql_secure_installation`、以及 §7 检查清单的逐项确认。
 
+**域名尚未备案时（大陆服务器）**：备案通过前用 IP 先跑——`deploy.env` 里
+`DEPLOY_DOMAIN` 填服务器 IP，并加一行 `DEPLOY_SITE_URL=http://IP`（站点链接走 HTTP+IP）。
+备案通过后：`DEPLOY_DOMAIN` 改回域名、删掉 `DEPLOY_SITE_URL` 行、加 A 记录，
+重跑 `init`（幂等，数据不动）再跑 `cert`。备案期间建议先不添加域名 A 记录
+（管局审核时「未备案已开通」可能导致驳回）。
+
 ## 0. 前置
 
 - Ubuntu 22.04/24.04，已装：`openjdk-17-jre-headless`、`nginx`、`mysql-server`、`git`、`nodejs`(构建前端用，可只在本地构建)。

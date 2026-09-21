@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-16（前批：…、**SEO（sitemap/robots + meta）**、**评论增强**；本批：**部署脚本 `deploy/deploy.sh`**——本机 Git Bash 一键部署/更新 Ubuntu 服务器：`init`（装依赖/建 blog_app 低权限账号/导本机全量数据/systemd/nginx HTTP/上传/探活/每日备份 cron，可安全重跑）、`update [front|back|all]`（构建+上传+重启）、`cert`（certbot 证书+切 HTTPS+80→443）、`logs`/`status`；配置走 `deploy/deploy.env`（gitignore）。顺手修复 nginx 配置两个 bug：`/api/`、`/uploads/` 改 `^~` 前缀（原会被静态资源正则抢占导致图片 404）、`index.html` 禁缓存（防发版后浏览器用旧页面））
+最后更新：2026-09-21（前批：…、**评论增强**、**部署脚本 deploy.sh**；本批：**部署落地（进行中）+ IP 先行模式**——站主服务器已到位：腾讯云大陆 Ubuntu 24.04（82.156.129.27），域名 ancauql.com（计划用 blog.ancauql.com 子域），**未备案**（备案由站主在腾讯云控制台提交，约 1-2 周）。deploy.sh 新增可选 `DEPLOY_SITE_URL`：备案前 `DEPLOY_DOMAIN` 填 IP + `DEPLOY_SITE_URL=http://IP` 走 HTTP；备案通过后改回域名、重跑 init + cert。当前 `deploy/deploy.env`（本机、gitignore）已按 IP 模式填好，等站主配好 SSH 免密与安全组 80/443 后跑 init。注意：站主本机跑着 Clash 类代理（DNS fake-ip），本机 nslookup 域名全是 198.18.x 假 IP，判断真实解析要去注册商 DNS 控制台或用在线工具）
 
 ---
 

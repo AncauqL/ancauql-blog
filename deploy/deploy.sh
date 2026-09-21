@@ -119,12 +119,13 @@ restart_backend() {
 }
 
 check_site_from_local() {
+    local base="${DEPLOY_SITE_URL:-https://$DEPLOY_DOMAIN}"
     local code
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DEPLOY_DOMAIN/" || true)"
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$base/" || true)"
     if [ "$code" = "200" ]; then
-        ok "公网验证：https://$DEPLOY_DOMAIN/ → 200"
+        ok "公网验证：$base/ → 200"
     else
-        warn "本机访问 https://$DEPLOY_DOMAIN/ 返回 ${code:-不可达}（若尚未配 DNS/证书/防火墙，属正常）"
+        warn "本机访问 $base/ 返回 ${code:-不可达}（若尚未配 DNS/证书/防火墙，属正常）"
     fi
 }
 
@@ -224,7 +225,7 @@ cmd_init() {
 DB_URL=jdbc:mysql://localhost:3306/blog_system?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
 DB_USERNAME=blog_app
 DB_PASSWORD=$db_pass
-BLOG_SITE_URL=https://$DEPLOY_DOMAIN
+BLOG_SITE_URL=${DEPLOY_SITE_URL:-https://$DEPLOY_DOMAIN}
 CORS_ALLOWED_ORIGINS=
 EOF
     SCPC "$tmp_env" "$DEPLOY_HOST:/tmp/blog.env.init"
