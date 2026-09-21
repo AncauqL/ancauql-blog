@@ -4,7 +4,7 @@
 > 本文件的目标：让能力较弱的模型也能安全、正确地继续开发。所有本机环境的坑、
 > 项目约定、验证命令、后续规划都在这里显式写死。**每完成一个任务必须回来更新本文件,向其他agent同步目前的进度。**
 
-最后更新：2026-09-21（前批：…、**评论增强**、**部署脚本 deploy.sh**；本批：**部署落地（进行中）+ IP 先行模式**——站主服务器已到位：腾讯云大陆 Ubuntu 24.04（82.156.129.27），域名 ancauql.com（计划用 blog.ancauql.com 子域），**未备案**（备案由站主在腾讯云控制台提交，约 1-2 周）。deploy.sh 新增可选 `DEPLOY_SITE_URL`：备案前 `DEPLOY_DOMAIN` 填 IP + `DEPLOY_SITE_URL=http://IP` 走 HTTP；备案通过后改回域名、重跑 init + cert。当前 `deploy/deploy.env`（本机、gitignore）已按 IP 模式填好，等站主配好 SSH 免密与安全组 80/443 后跑 init。注意：站主本机跑着 Clash 类代理（DNS fake-ip），本机 nslookup 域名全是 198.18.x 假 IP，判断真实解析要去注册商 DNS 控制台或用在线工具）
+最后更新：2026-09-21（前批：…、**评论增强**、**部署脚本 deploy.sh**；本批：**✅ 部署已上线（IP 模式）**——腾讯云轻量 Ubuntu 24.04（82.156.129.27），`deploy.sh init` 首跑实跑成功：apt 装依赖、blog_app 随机密码、本机数据全量导入、systemd+nginx、产物上传、探活全通过；公网 http://82.156.129.27/ → 200，/api/hello、/sitemap.xml 正常，admin 可登录。服务器另有既有服务：Cloudreve 全家桶（docker：cloudreve/postgresql/redis，nginx.conf 内置 reve.ancauql.com 443 反代）+ WireGuard(51820)，部署零冲突（博客走 conf.d/，nginx 按 server_name 区分）。**注意**：①服务器实际 nginx 配置在 nginx.conf 主文件内（sites-enabled/conf.d 原为空），博客配置在 conf.d/blog-site.conf，将来改 reve 配置别动 nginx.conf 的 http 块结构；②博客目前 HTTP（域名 ancauql.com 未备案且服务器购买不足 3 个月暂不能提交备案，期满后走腾讯云备案 → blog.ancauql.com A 记录 → deploy.env 改回域名重跑 init + cert）；③站主 SSH 密码已在聊天中出现，建议尽快在腾讯云控制台重置；④内存 3.6G，当前剩 ~2.2G 可用，够用但别再多堆大服务）
 
 ---
 
