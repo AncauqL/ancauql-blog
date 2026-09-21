@@ -36,7 +36,7 @@ AncauqL_blog/
 │     ├─ views/                  # 页面组件
 │     └─ assets/                 # 样式与 logo
 ├─ deploy/                       # 服务器部署材料（Ubuntu）
-│  ├─ deploy.sh                  # 一键部署/更新脚本（本机 Git Bash 运行：init/update/cert/logs）
+│  ├─ deploy.sh                  # 一键部署/更新脚本（本机 Git Bash 运行：init/update/cert/pull/logs）
 │  ├─ deploy.env.example         # 部署目标配置模板（复制为 deploy.env 填写，已 gitignore）
 │  ├─ DEPLOY.md                  # 部署步骤与上线检查清单
 │  ├─ nginx/                     # 反代+HTTPS 配置（00-blog-limit / blog-site / 公共头）
@@ -394,6 +394,7 @@ bash deploy/deploy.sh init      # 首次：装依赖/建 blog_app 低权限账�
                                 #      写 /etc/blog/blog.env、systemd、nginx(HTTP)/上传产物/启动探活
 bash deploy/deploy.sh cert      # 域名解析生效后：certbot 证书 + 切换完整 HTTPS 配置 + 80→443 跳转
 bash deploy/deploy.sh update    # 日常更新：构建+上传+重启（update front 只发前端、back 只发后端）
+bash deploy/deploy.sh pull      # 反向同步：服务器数据(整库+图片)拉回本机、覆盖本机（-y 免确认）
 bash deploy/deploy.sh logs      # 跟随后端日志；status 查看运行状态
 ```
 

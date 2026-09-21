@@ -152,6 +152,8 @@ MYSQL_PWD=<见dev-env.bat> mysql -uroot -D blog_system -e "SELECT id,title,statu
 # 服务器部署/更新（Ubuntu；配置文件 deploy/deploy.env 本机自建，不提交）
 bash deploy/deploy.sh init              # 首次部署（装依赖/建库导数据/systemd/nginx/上传/启动）
 bash deploy/deploy.sh update            # 日常更新（可 update front / update back）
+bash deploy/deploy.sh pull              # 反向：服务器整库+uploads 拉回本机（覆盖本机库，-y 免确认；
+                                         #   用于本地开发拿真实数据/手动备份；严禁反向导库到服务器）
 bash deploy/deploy.sh cert              # 域名解析生效后：证书 + HTTPS + 强制跳转
 bash deploy/deploy.sh logs              # 跟随后端日志；status 查看运行状态
 ```

@@ -14,6 +14,10 @@
 #   bash deploy/deploy.sh update front  # 只发前端（不重启后端、不掉登录态）
 #   bash deploy/deploy.sh update back   # 只发后端（会重启，登录态失效）
 #
+# 反向同步（服务器数据 → 本机，用于本地开发拿真实数据 / 手动备份到本机）：
+#   bash deploy/deploy.sh pull          # 覆盖本机 blog_system 库 + uploads 图片（有确认提示）
+#   bash deploy/deploy.sh pull -y       # 免确认（脚本/定时任务用）
+#
 # 其他：
 #   build   只构建本地产物（后端 jar + 前端 dist）
 #   logs    跟随后端日志（journalctl -f）
@@ -56,6 +60,14 @@ load_env() {
 # 不全局关闭是因为 mvn.cmd 反而需要正常传参
 SSH()  { MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' ssh -o ConnectTimeout=10 -p "$DEPLOY_SSH_PORT" "$DEPLOY_HOST" "$@"; }
 SCPC() { MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' scp -o ConnectTimeout=10 -P "$DEPLOY_SSH_PORT" "$@"; }
+
+# 读取本机开发库凭据（dev-env.bat 为 GBK+CRLF，但 set 行是纯 ASCII，按行提取即可）
+read_dev_env() {
+    DEV_DB_USER="$(sed -n 's/\r$//;s/^set "DB_USERNAME=\([^"]*\)"$/\1/p' dev-env.bat | head -n 1)"
+    DEV_DB_PASS="$(sed -n 's/\r$//;s/^set "DB_PASSWORD=\([^"]*\)"$/\1/p' dev-env.bat | head -n 1)"
+    [ -n "$DEV_DB_PASS" ] || die "未能从 dev-env.bat 读取 DB_PASSWORD：请确认根目录存在该文件且格式为 set \"DB_PASSWORD=...\""
+    DEV_DB_USER="${DEV_DB_USER:-root}"
+}
 
 find_mvn() {
     if command -v mvn >/dev/null 2>&1; then command -v mvn; return 0; fi
@@ -173,6 +185,51 @@ cmd_update() {
     ok "更新完成（$what）"
 }
 
+cmd_pull() {
+    local yes=0
+    case "${1:-}" in
+        -y|--yes) yes=1 ;;
+        "") ;;
+        *) die "用法：deploy.sh pull [-y]" ;;
+    esac
+    load_env
+    read_dev_env
+
+    if [ "$yes" -ne 1 ]; then
+        warn "pull 将用【服务器数据】覆盖本机 blog_system 数据库与 $UPLOADS_DIR 图片目录"
+        warn "（本机独有的文章/评论/测试数据会丢失；该操作不影响服务器）"
+        printf '确认继续？输入 yes 回车：'
+        local reply
+        read -r reply
+        [ "$reply" = "yes" ] || die "已取消"
+    fi
+
+    info "从服务器导出 blog_system ..."
+    local dump
+    dump="$(mktemp)"
+    SSH "sudo mysqldump --single-transaction --quick blog_system" > "$dump"
+    if [ ! -s "$dump" ] || ! grep -q "CREATE TABLE" "$dump"; then
+        rm -f "$dump"
+        die "服务器导出内容异常，已中止（本机数据未动）"
+    fi
+
+    info "导入本机 MySQL（覆盖 blog_system）..."
+    if ! MYSQL_PWD="$DEV_DB_PASS" mysql -u "$DEV_DB_USER" blog_system < "$dump"; then
+        rm -f "$dump"
+        die "本机导入失败（本机数据可能不完整，可重试）"
+    fi
+    rm -f "$dump"
+
+    info "拉取服务器 uploads 图片到本机 ..."
+    mkdir -p "$UPLOADS_DIR"
+    if ! SSH "sudo tar -C $REMOTE_UPLOADS -cf - ." | tar -C "$UPLOADS_DIR" -xf -; then
+        warn "图片拉取失败（服务器可能还没有上传过图片），数据库部分已完成"
+    fi
+
+    ok "pull 完成：本机 blog_system 与 uploads 已与服务器一致"
+    echo "   提醒：以后在本机后台写的文章只存在本机，记得线上写作；反向（本机→服务器）导库是被禁止的"
+}
+
 cmd_init() {
     load_env
     info "目标：$DEPLOY_HOST  域名：$DEPLOY_DOMAIN  SSH 端口：$DEPLOY_SSH_PORT"
@@ -208,13 +265,8 @@ cmd_init() {
         warn "服务器 blog_system 已有 ${tbl} 张表，跳过数据导入（如需重灌请手动处理）"
     else
         info "从本机 MySQL 导出 blog_system 全量数据..."
-        # dev-env.bat 为 GBK+CRLF；set 行是纯 ASCII，按行提取即可
-        local dev_user dev_pass
-        dev_user="$(sed -n 's/\r$//;s/^set "DB_USERNAME=\([^"]*\)"$/\1/p' dev-env.bat | head -n 1)"
-        dev_pass="$(sed -n 's/\r$//;s/^set "DB_PASSWORD=\([^"]*\)"$/\1/p' dev-env.bat | head -n 1)"
-        [ -n "$dev_pass" ] || die "未能从 dev-env.bat 读取 DB_PASSWORD：请确认根目录存在该文件且格式为 set \"DB_PASSWORD=...\""
-        dev_user="${dev_user:-root}"
-        MYSQL_PWD="$dev_pass" mysqldump --single-transaction --quick -u "$dev_user" blog_system | SSH "sudo mysql blog_system"
+        read_dev_env
+        MYSQL_PWD="$DEV_DB_PASS" mysqldump --single-transaction --quick -u "$DEV_DB_USER" blog_system | SSH "sudo mysql blog_system"
         ok "本机数据已导入服务器（含账号与文章，admin 密码与本机一致）"
     fi
 
@@ -396,6 +448,7 @@ main() {
     case "$cmd" in
         init)   cmd_init "$@" ;;
         update) cmd_update "$@" ;;
+        pull)   cmd_pull "$@" ;;
         build)  cmd_build ;;
         cert)   cmd_cert ;;
         logs)   cmd_logs ;;
